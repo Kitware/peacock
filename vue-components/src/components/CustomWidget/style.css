@@ -1,0 +1,13 @@
+.btn {
+    margin: 0 10px;
+}
+
+.btnClick {
+    composes: btn;
+    background: #F48FB1 !important;
+}
+
+.btnChange {
+    composes: btn;
+    background: #CE93D8 !important;
+}

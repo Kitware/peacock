@@ -1,0 +1,6 @@
+trame: # Default app under /index.html
+  www_modules:
+    - peacock_trame.module
+  app: peacock-trame
+peacock-trame: # /peacock-trame.html
+  app: peacock-trame
