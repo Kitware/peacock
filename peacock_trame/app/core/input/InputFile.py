@@ -10,7 +10,7 @@
 
 import os
 import mooseutils
-from .PeacockException import PeacockException
+from ..common.PeacockException import PeacockException
 from pyhit import hit
 
 
