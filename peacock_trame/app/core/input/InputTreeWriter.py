@@ -82,7 +82,7 @@ def nodeParamsString(hit_parent, entry, ignore_type=False):
 
     type_info = entry.parameters.get("type")
     if entry.types and type_info:
-        type_name = type_info.value
+        type_name = type_info.getValue()
         type_entry = entry.types.get(type_name)
         if type_entry:
             nodeParamsString(hit_parent, type_entry, ignore_type=True)

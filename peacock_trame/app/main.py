@@ -6,10 +6,14 @@ sys.path.append(os.path.join(moose_dir, 'python'))
 
 from trame.app import get_server, dev
 from trame.ui.vuetify import VAppLayout
-from trame.widgets import vuetify, html
+from trame.widgets import vuetify, html, simput
+from trame_simput import get_simput_manager
 
-from .input.fileEditor import InputFileEditor
-
+from .fileEditor import (
+    InputFileEditor,
+    BlockFactory,
+    BlockAdapter,
+)
 
 def _reload():
     server = get_server()
@@ -18,75 +22,83 @@ def _reload():
 
 
 def initialize(server):
-    file_editor = InputFileEditor(server)
+    state, ctrl = server.state, server.controller
 
-    server.state.trame__title = "peacock-trame"
+    state.trame__title = "peacock-trame"
+
+    simput_manager = get_simput_manager(
+        object_factory=BlockFactory(),
+        object_adapter=BlockAdapter(),
+    )
+    simput_widget = simput.Simput(simput_manager, trame_server=server)
+
+    file_editor = InputFileEditor(server, simput_manager)
 
     with VAppLayout(server) as layout:
 
-        # Main content
-        with layout:
-            with vuetify.VContainer(fluid=True, classes="pa-0 fill-height d-flex flex-column"):
-                with vuetify.VContainer(fluid=True, classes="pa-0 flex-grow-0"):
-                    with vuetify.VMenu():
-                        with vuetify.Template(v_slot_activator="{on, attrs}"):
-                            vuetify.VBtn('Peacock', v_bind="attrs", v_on="on")
+        layout.root = simput_widget
 
-                        with vuetify.VList():
-                            vuetify.VListItem("List Item")
-                            vuetify.VListItem("Preferences")
-                            vuetify.VListItem("Exit")
+        with vuetify.VContainer(fluid=True, classes="pa-0 fill-height d-flex flex-column"):
+            with vuetify.VContainer(fluid=True, classes="pa-0 flex-grow-0"):
+                with vuetify.VMenu():
+                    with vuetify.Template(v_slot_activator="{on, attrs}"):
+                        vuetify.VBtn('Peacock', v_bind="attrs", v_on="on")
 
-                    with vuetify.VMenu():
-                        with vuetify.Template(v_slot_activator="{on, attrs}"):
-                            vuetify.VBtn('Input File', v_bind="attrs", v_on="on")
+                    with vuetify.VList():
+                        vuetify.VListItem("List Item")
+                        vuetify.VListItem("Preferences")
+                        vuetify.VListItem("Exit")
 
-                        with vuetify.VList():
-                            with vuetify.VListItem("Open", click="console.log($refs.fileInput); $refs.fileInput.$children[0].$el.click()"):
-                                vuetify.VFileInput(v_model=("input_file", None), type="file", classes="d-none", ref="fileInput")
-                            vuetify.VListItem("Recently opened")
-                            vuetify.VListItem("Save")
-                            vuetify.VListItem("Save As")
-                            vuetify.VListItem("Clear")
-                            vuetify.VListItem("Check")
-                            vuetify.VListItem("View current input file")
-                            vuetify.VListItem("Background")
+                with vuetify.VMenu():
+                    with vuetify.Template(v_slot_activator="{on, attrs}"):
+                        vuetify.VBtn('Input File', v_bind="attrs", v_on="on")
 
-                    with vuetify.VMenu():
-                        with vuetify.Template(v_slot_activator="{on, attrs}"):
-                            vuetify.VBtn('E<u>x</u>ecute', tile="true", v_bind="attrs", v_on="on")
+                    with vuetify.VList():
+                        with vuetify.VListItem("Open", click="console.log($refs.fileInput); $refs.fileInput.$children[0].$el.click()"):
+                            vuetify.VFileInput(v_model=("input_file", None), type="file", classes="d-none", ref="fileInput")
+                        vuetify.VListItem("Recently opened")
+                        vuetify.VListItem("Save", click=(file_editor.write_file))
+                        vuetify.VListItem("Save As")
+                        vuetify.VListItem("Clear")
+                        vuetify.VListItem("Check")
+                        vuetify.VListItem("View current input file")
+                        vuetify.VListItem("Background")
 
-                        with vuetify.VList():
-                            vuetify.VListItem("Recent working dirs")
-                            vuetify.VListItem("Recent executables")
-                            vuetify.VListItem("Recent arguments")
-                            vuetify.VListItem("Reload executable syntax")
+                with vuetify.VMenu():
+                    with vuetify.Template(v_slot_activator="{on, attrs}"):
+                        vuetify.VBtn('E<u>x</u>ecute', tile="true", v_bind="attrs", v_on="on")
 
-                    with vuetify.VMenu():
-                        with vuetify.Template(v_slot_activator="{on, attrs}"):
-                            vuetify.VBtn('<u>R</u>esults', v_bind="attrs", v_on="on")
+                    with vuetify.VList():
+                        vuetify.VListItem("Recent working dirs")
+                        vuetify.VListItem("Recent executables")
+                        vuetify.VListItem("Recent arguments")
+                        vuetify.VListItem("Reload executable syntax")
 
-                        with vuetify.VList():
-                            vuetify.VListItem("Background")
-                            with vuetify.VListItem():
-                                vuetify.VCheckbox()
-                                html.P("Show live script", classes="ma-0")
-                            vuetify.VListItem("Export")
+                with vuetify.VMenu():
+                    with vuetify.Template(v_slot_activator="{on, attrs}"):
+                        vuetify.VBtn('<u>R</u>esults', v_bind="attrs", v_on="on")
 
-                    with vuetify.VMenu():
-                        with vuetify.Template(v_slot_activator="{on, attrs}"):
-                            vuetify.VBtn('Debug', v_bind="attrs", v_on="on")
+                    with vuetify.VList():
+                        vuetify.VListItem("Background")
+                        with vuetify.VListItem():
+                            vuetify.VCheckbox()
+                            html.P("Show live script", classes="ma-0")
+                        vuetify.VListItem("Export")
 
-                        with vuetify.VList():
-                            vuetify.VListItem("Show Python Console")
+                with vuetify.VMenu():
+                    with vuetify.Template(v_slot_activator="{on, attrs}"):
+                        vuetify.VBtn('Debug', v_bind="attrs", v_on="on")
 
-                with vuetify.VTabs(classes="flex-grow-0", v_model=("tab_idx", 0)):
-                    for tab_label in ['Input File', 'Execute', 'Exodus Viewer', 'Postprocess Viewer', 'Vector Postprocess Viewer']:
-                        vuetify.VTab(tab_label)
+                    with vuetify.VList():
+                        vuetify.VListItem("Show Python Console")
 
-                # input file editor
-                with vuetify.VContainer(v_if="tab_idx == 0", fluid=True, classes="flex-grow-1 pa-0 ma-0"):
-                    file_editor.get_ui()
+            with vuetify.VTabs(classes="flex-grow-0", v_model=("tab_idx", 0)):
+                for tab_label in ['Input File', 'Execute', 'Exodus Viewer', 'Postprocess Viewer', 'Vector Postprocess Viewer']:
+                    vuetify.VTab(tab_label)
+
+            # input file editor
+            with vuetify.VContainer(v_if="tab_idx == 0", fluid=True, classes="flex-grow-1 pa-0 ma-0"):
+                file_editor.get_ui()
 
 
 def main(server=None, **kwargs):
@@ -101,6 +113,7 @@ def main(server=None, **kwargs):
     parser = server.cli
     parser.add_argument("-I", "--input", help="Input file (.i)")
     parser.add_argument("-E", "--exe", help="Executable")
+    parser.add_argument("-o", "--output", help="Output simput model yaml file")
     (args, _unknown) = parser.parse_known_args()
     state = server.state
     if args.input is None or args.exe is None:
@@ -108,6 +121,7 @@ def main(server=None, **kwargs):
         return
     state.input_file = args.input
     state.executable = args.exe
+    state.model_file = args.output
 
     # Make UI auto reload
     server.controller.on_server_reload.add(_reload)

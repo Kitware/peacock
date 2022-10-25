@@ -14,7 +14,7 @@ class ParameterInfo(object):
     Holds the information for a parameter
     """
     def __init__(self, parent, name):
-        self.value = ""
+        self._value = ""
         self.user_added = False
         self.name = name
         self.required = False
@@ -34,9 +34,7 @@ class ParameterInfo(object):
         Input:
             data[dict]: This is the dict description of the parameter as read from the JSON dump.
         """
-        self.default = data.get("default", "")
-        if self.default is None:
-            self.default = ""
+
         self.cpp_type = data["cpp_type"]
         self.basic_type = data["basic_type"]
         self.description = data["description"]
@@ -51,14 +49,19 @@ class ParameterInfo(object):
         else:
             self.options = []
 
+        default = data.get("default", "")
+        if default is None:
+            default = ""
         if self.cpp_type == "bool":
-            if self.default == "0":
-                self.default = "false"
-            elif self.default == "1":
-                self.default = "true"
-            elif not self.default:
-                self.default = "false"
-        self.value = self.default
+            if default == "0":
+                default = "false"
+            elif default == "1":
+                default = "true"
+            elif not default:
+                default = "false"
+
+        self.default = self._parse(default)
+        self._value = self.default
 
     def copy(self, parent):
         """
@@ -84,10 +87,14 @@ class ParameterInfo(object):
             ("basic_string" in self.cpp_type and self.name == "value") or
             ("std::string" in self.cpp_type and self.name == "value") or
             self.cpp_type == "FunctionExpression" or
-            ' ' in self.value or
-            ';' in self.value or
-            '=' in self.value or
-            '\n' in self.value
+                (
+                    type(self._value) is str and (
+                        ' ' in self._value or
+                        ';' in self._value or
+                        '=' in self._value or
+                        '\n' in self._value
+                    )
+                )
             )
 
     def isVectorType(self):
@@ -103,10 +110,26 @@ class ParameterInfo(object):
         Return the string that should be written to the input file.
         Some values needs single quotes while others do not.
         """
-        if self.needsQuotes() and (self.value or self.user_added):
-            return "'%s'" % self.value
+        value = self._value
+
+        if type(value) is list:
+            file_value = ' '.join([self._fileValue(val) for val in value])
         else:
-            return str(self.value)
+            file_value = self._fileValue(value)
+
+        if self.needsQuotes() and (file_value or self.user_added):
+            file_value = "'%s'" % file_value
+
+        return file_value
+
+    def _fileValue(self, value):
+        if type(value) is bool:
+            if value:
+                return 'true'
+            else:
+                return 'false'
+        else:
+            return str(value)
 
     def hitType(self):
         """
@@ -116,14 +139,46 @@ class ParameterInfo(object):
         return hit_map.get(self.basic_type, "String")
 
     def toolTip(self):
-        return self.description + "\nDefault: %s" % self.default
+        return self.description + ". Default: %s" % self.default
+
+    def setValue(self, value):
+        self._value = self._parse(value)
+
+    def getValue(self):
+        return self._value
+
+    def _parse(self, value):
+        if value == '' or value == None:
+            return ''
+
+        basic_type = self.basic_type
+        basic_type_parse_map = {
+            'Integer': int,
+            'Real': float,
+            'Boolean': lambda x: (type(x) is bool and x) or x == 'true',
+            'String': lambda x: x,
+        }
+
+        if basic_type.startswith('Array:'):
+            basic_type = basic_type.split('Array:')[-1]
+            parse_func = basic_type_parse_map[basic_type]
+
+            if type(value) is str:
+                return [parse_func(val) for val in value.split()]
+            elif type(value) is list:
+                return [parse_func(val) for val in value]
+            else:
+                return parse_func(value)
+        else:
+            parse_func = basic_type_parse_map[basic_type]
+            return parse_func(value)
 
     def hasChanged(self):
-        return self.value != self.default or self.comments
+        return self._value != self.default or self.comments
 
     def dump(self, o, indent=0, sep='  '):
         o.write("%sName: %s\n" % (indent*sep, self.name))
-        o.write("%sValue: %s\n" % (indent*sep, self.value))
+        o.write("%sValue: %s\n" % (indent*sep, self._value))
         o.write("%sDefault: %s\n" % (indent*sep, self.default))
         o.write("%sUser added: %s\n" % (indent*sep, self.user_added))
         o.write("%sRequired: %s\n" % (indent*sep, self.required))

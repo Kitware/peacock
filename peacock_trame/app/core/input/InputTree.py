@@ -157,12 +157,12 @@ class InputTree(object):
                 # must be a user added param
                 param_info = self.addUserParam(path, param_node.path(), param_node.raw())
             else:
-                param_info.value = param_node.raw()
+                param_info.setValue(param_node.raw())
             if param_info.name == "active":
-                active = param_info.value.split()
+                active = param_info.getValue().split()
                 param_info.parent.removeUserParam("active", True)
             elif param_info.name == "inactive":
-                for inactive in param_info.value.split():
+                for inactive in param_info.getValue().split():
                     try:
                         active.remove(inactive)
                     except ValueError:
@@ -202,7 +202,7 @@ class InputTree(object):
         param_info = entry.parameters.get("type")
         if in_type and in_type.raw() and param_info:
             entry.setBlockType(in_type.raw())
-            param_info.value = in_type.raw()
+            param_info.setValue(in_type.raw())
             if "type" not in entry.parameters_list:
                 entry.parameters_list.insert(0, "type")
 

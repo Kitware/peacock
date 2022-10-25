@@ -97,8 +97,9 @@ class BlockInfo(object):
         """
         if self.types and self.parameters.get("type"):
             type_info = self.parameters["type"]
-            if type_info.value and type_info.value in self.types:
-                return self.types[type_info.value]
+            type_val = type_info.getValue()
+            if type_val and type_val in self.types:
+                return self.types[type_val]
 
     def paramValue(self, param):
         """
@@ -110,7 +111,7 @@ class BlockInfo(object):
         """
         param_info = self.getParamInfo(param)
         if param_info:
-            return param_info.value
+            return param_info.getValue()
 
     def setParamValue(self, param, val):
         """
@@ -121,7 +122,7 @@ class BlockInfo(object):
         """
         param_info = self.getParamInfo(param)
         if param_info:
-            param_info.value = val
+            param_info.setValue(val)
 
     def blockType(self):
         """
@@ -131,7 +132,7 @@ class BlockInfo(object):
         """
         pinfo = self.parameters.get("type")
         if pinfo:
-            return pinfo.value
+            return pinfo.getValue()
 
     def setBlockType(self, type_name):
         """
@@ -141,7 +142,7 @@ class BlockInfo(object):
         """
         pinfo = self.parameters.get("type")
         if pinfo:
-            pinfo.value = type_name
+            pinfo.setValue(type_name)
 
     def addChildBlock(self, child_info):
         """
@@ -225,7 +226,7 @@ class BlockInfo(object):
             return
         pinfo = ParameterInfo(self, param)
         pinfo.user_added = True
-        pinfo.value = value
+        pinfo.setValue(value)
         self.addParameter(pinfo)
         return pinfo
 
