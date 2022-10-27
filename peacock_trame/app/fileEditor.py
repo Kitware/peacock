@@ -125,10 +125,9 @@ class InputFileEditor:
                         params_dict[param.name] = self.format_simput_param(param)
 
                 # sort params so that:
-                #  - type is 1st
-                #  - all required follows
+                #  - required params are first
                 #  - everything else is alphabetical
-                params_dict = dict(sorted(params_dict.items(), key=lambda kv: (kv[0] != 'type', kv[1]['required'] == False, kv[0])))
+                params_dict = dict(sorted(params_dict.items(), key=lambda kv: (kv[1]['required'] == False, kv[0])))
 
                 block_model[type_info.name] = params_dict
 
