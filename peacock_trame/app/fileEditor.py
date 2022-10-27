@@ -237,6 +237,7 @@ class InputFileEditor:
         param_entry = {
             '_label': param.name,
             '_help': param.toolTip(),
+            '_tags': [param.group_name],
             'type': simput_type,
             'initial': param.getValue(),
             'required': param.required,
