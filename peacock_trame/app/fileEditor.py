@@ -47,7 +47,6 @@ class InputFileEditor:
         state.active_id = '/Mesh_type_FileMesh'
         state.show_mesh = False
         state.block_to_add = None
-        state.child_types = {}  # map of possible children types for each block
 
         state.change('active_id')(self.on_active_id)
         state.change('block_to_add')(self.on_block_to_add)
@@ -65,8 +64,10 @@ class InputFileEditor:
         state = self._server.state
         self.block_tree = []  # list of tree entries as used by vuetify's vtreeview
         self.unused_blocks = []  # unused parent block names
+        self.child_types = {}  # map of possible children types for each block
         state.block_tree = self.block_tree
         state.unused_blocks = self.unused_blocks
+        state.child_types = self.child_types
 
         self.tree.setInputFile(file_name)
 
@@ -200,8 +201,7 @@ class InputFileEditor:
             child_types = list(star_node.types.keys())
         else:
             child_types = []
-        state = self._server.state
-        state.child_types[block.name] = child_types
+        self.child_types[block.name] = child_types
 
         # add children
         for _, child in block.children.items():
@@ -337,8 +337,10 @@ class InputFileEditor:
         state = self._server.state
         state.unused_blocks = self.unused_blocks
         state.block_tree = self.block_tree
+        state.child_types = self.child_types
         state.dirty('unused_blocks')
         state.dirty('block_tree')
+        state.dirty('child_types')
 
     def get_ui(self):
         # return ui for input file editor
