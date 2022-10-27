@@ -28,7 +28,6 @@ class InputFileEditor:
         self._server = server
         state = server.state
 
-        self.block_path_map = {}  # map of block ids to name
         self.cpp_type_map = {
             'bool': 'bool',
             'char': 'int8',
@@ -45,7 +44,7 @@ class InputFileEditor:
         }
 
         state.add_block_open = False
-        state.active_id = 1
+        state.active_id = '/Mesh_type_FileMesh'
         state.show_mesh = False
         state.block_to_add = None
         state.child_types = {}  # map of possible children types for each block
@@ -121,7 +120,8 @@ class InputFileEditor:
 
                 params_dict = {}
                 for param in params:
-                    params_dict[param.name] = self.format_simput_param(param)
+                    if param.name != 'type':  # type is handled outside simput
+                        params_dict[param.name] = self.format_simput_param(param)
 
                 # sort params so that:
                 #  - type is 1st
@@ -164,14 +164,12 @@ class InputFileEditor:
             params = params + type_block.orderedParameters()
             simput_type = type_block.name
 
-
-        simput_entry = self.pxm.create(simput_type, existing_obj=block)
-        block_id = int(simput_entry.id)
-        self.block_path_map[block_id] = block.path
+        proxy_id = block.path + '_type_' + simput_type
+        simput_entry = self.pxm.create(simput_type, existing_obj=block, proxy_id=proxy_id)
 
         # --- add to vuetify tree ---
         block_entry = {
-            "id": block_id,
+            "id": proxy_id,
             "name": block.name,
             "path": block.path,
         }
@@ -280,7 +278,8 @@ class InputFileEditor:
         if active_id is None:
             return
 
-        active_block = self.tree.getBlockInfo(self.block_path_map[active_id])
+        block_path = active_id.split('_type_')[0]
+        active_block = self.tree.getBlockInfo(block_path)
 
         state.show_mesh = active_block.name == 'Mesh' or active_block.parent.name == 'Mesh'
 
@@ -291,14 +290,27 @@ class InputFileEditor:
         state = self._server.state
         pxm = self.pxm
 
-        active_id = state.active_id
-        active_block = self.tree.getBlockInfo(self.block_path_map[active_id])
-        active_block.setBlockType(active_type)
+        block_path = state.active_id.split('_type_')[0]
+        block_info = self.tree.getBlockInfo(block_path)
+        proxy_id = block_path + '_type_' + active_type
 
-        pxm.delete(active_id)
+        proxy = pxm.get(proxy_id)
 
-        pxm._obj_factory.next(active_block)
-        pxm.create(active_type, proxy_id=active_id)
+        if proxy:
+            # get existing proxy block info
+            new_block_info = proxy._object
+        else:
+            # create block info of new type
+            new_block_info = block_info.copy(block_info.parent)
+            new_block_info.setBlockType(active_type)
+            pxm.create(active_type, existing_obj=new_block_info, proxy_id=proxy_id)
+
+        # insert new block into input file tree
+        parent_info = block_info.parent
+        parent_info.children[block_info.name] = new_block_info
+        self.tree.path_map[block_path] = new_block_info
+
+        state.active_id = proxy_id
 
     def on_block_to_add(self, block_to_add, **kwargs):
         # this function triggers when a new block is added to the tree in the ui
@@ -347,7 +359,7 @@ class InputFileEditor:
                     hoverable=True,
                     rounded=True,
                     activatable=True,
-                    active=("active_ids", [1]),
+                    active=("active_ids", ['/Mesh_type_FileMesh']),
                     update_active="(active_ids) => {active_id = active_ids[0]}"
                 ):
                     with vuetify.Template(v_slot_label="{ item }"):
