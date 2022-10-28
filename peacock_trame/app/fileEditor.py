@@ -65,16 +65,14 @@ class InputFileEditor:
         state = self._server.state
         self.block_tree = []  # list of tree entries as used by vuetify's vtreeview
         self.unused_blocks = []  # unused parent block names
-        self.child_types = {}  # map of possible children types for each block
         state.block_tree = self.block_tree
         state.unused_blocks = self.unused_blocks
-        state.child_types = self.child_types
 
         self.tree.setInputFile(file_name)
 
         # --- populate input file tree ---
         root_block = self.tree.getBlockInfo('/')
-        for path, block in root_block.children.items():
+        for block in root_block.children.values():
             if block.included:
                 self.add_block(block)
             else:
@@ -143,7 +141,16 @@ class InputFileEditor:
             "id": proxy_id,
             "name": block_info.name,
             "path": block_info.path,
+            "children": [],
+            "hidden_children": [],
         }
+
+        if block_info.star:  # block can have new children
+            star_node = block_info.star_node
+            child_types = list(star_node.types.keys())
+            if not child_types:
+                child_types = [block_info.name]  # use block name if no child types exist
+            block_entry['child_types'] = child_types
 
         # check if block is a child
         parent = block_info.parent
@@ -151,42 +158,56 @@ class InputFileEditor:
             # add block to tree sorted by name
             insort(self.block_tree, block_entry, key=lambda e: e['name'])
         else:
-            # path is in form /ancestor_a/ancestor_b/.../parent/block
-            # splitting by '/' gives ['', ancestor_a, ancestor_b, ... ,parent, block]
-            ancestors = block_info.path.split('/')[0:-1]
-            block_list = self.block_tree
-            # find block in tree
-            for ancestor in ancestors:
-                for b in block_list:
-                    if b['name'] == ancestor:
-                        if 'children' not in b:
-                            b['children'] = []
-                        block_list = b['children']
-                        parent_entry = b
-
-            parent_entry['children'].append(block_entry)
-
-        star_node = block_info.star_node
-        if star_node:
-            child_types = list(star_node.types.keys())
-        else:
-            child_types = []
-        self.child_types[block_info.name] = child_types
+            parent_entry = self.get_block_tree_entry(parent.path)
+            if block_info.included:
+                parent_entry['children'].append(block_entry)
+            else:
+                parent_entry['hidden_children'].append(block_entry)
 
         # add children
-        for _, child in block_info.children.items():
+        for child in block_info.children.values():
             self.add_block(child)
+
+    def get_block_tree_entry(self, path):
+        # path is in form /ancestor_a/ancestor_b/.../parent/block
+        # splitting by '/' gives ['', ancestor_a, ancestor_b, ... ,parent, block]
+        ancestors = path.split('/')[1:]
+        block_list = self.block_tree
+        # find block in tree
+        for ancestor in ancestors:
+            for b in block_list:
+                if b['name'] == ancestor:
+                    block_list = b['children']
+                    parent_entry = b
+
+        return parent_entry
 
     # TODO: implement this
     def remove_block(self, block):
         return
 
-    def add_child_block(self, parent, child_type):
-        parent_info = self.tree.getBlockInfo('/' + parent)
+    def add_child_block(self, parent_path, child_type):
+        parent_info = self.tree.getBlockInfo(parent_path)
         new_name = parent_info.findFreeChildName()
-        new_block = self.tree.addUserBlock(parent_info.path, new_name)
-        new_block.setBlockType(child_type)
+        new_block = self.tree.addUserBlock(parent_path, new_name)
+        new_block.included = True
+        if child_type != parent_info.name:  # only set type if valid type was passed
+            new_block.setBlockType(child_type)
         self.add_block(new_block)
+        self.update_state()
+
+    def include_child(self, parent_path, child_name):
+        parent_info = self.tree.getBlockInfo(parent_path)
+        child_info = parent_info.children[child_name]
+        child_info.included = True
+
+        parent_entry = self.get_block_tree_entry(parent_path)
+        for child_entry in parent_entry['hidden_children']:
+            if child_entry['name'] == child_name:
+                break
+        parent_entry['hidden_children'].remove(child_entry)
+        parent_entry['children'].append(child_entry)
+
         self.update_state()
 
     def format_simput_param(self, param):
@@ -248,6 +269,8 @@ class InputFileEditor:
         state = self._server.state
 
         if active_id is None:
+            state.active_type = None
+            state.active_types = []
             return
 
         block_path = active_id.split('_type_')[0]
@@ -315,10 +338,8 @@ class InputFileEditor:
         state = self._server.state
         state.unused_blocks = self.unused_blocks
         state.block_tree = self.block_tree
-        state.child_types = self.child_types
         state.dirty('unused_blocks')
         state.dirty('block_tree')
-        state.dirty('child_types')
 
     def get_ui(self):
         # return ui for input file editor
@@ -351,18 +372,24 @@ class InputFileEditor:
                             with vuetify.VMenu():
                                 with vuetify.Template(v_slot_activator="{on, attrs}",):
                                     with vuetify.VBtn(
-                                        v_if="child_types[item.name].length > 0",
+                                        v_if="item.child_types != undefined || item.hidden_children.length > 0",
                                         icon=True,
                                         v_on="on", v_bind="attrs",
                                         click="(event) => {event.stopPropagation(); event.preventDefault();}"
                                     ):
                                         vuetify.VIcon("mdi-plus-circle",)
 
-                                with vuetify.VList():
+                                with vuetify.VList(style="overflow: auto; max-height: 90vh;"):
+                                    vuetify.VListItem(
+                                        "{{child.name}}",
+                                        v_for="child in item.hidden_children",
+                                        style="background: lightblue;",
+                                        click=(self.include_child, "[item.path, child.name]")
+                                    )
                                     vuetify.VListItem(
                                         "{{child_type}}",
-                                        v_for="child_type in child_types[item.name]",
-                                        click=(self.add_child_block, "[item.name, child_type]"),
+                                        v_for="child_type in item.child_types",
+                                        click=(self.add_child_block, "[item.path, child_type]"),
                                     )
 
                             with vuetify.VBtn(icon=True, click="""
