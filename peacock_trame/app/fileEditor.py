@@ -44,7 +44,7 @@ class InputFileEditor:
         }
 
         state.add_block_open = False
-        state.active_id = '/Mesh_type_FileMesh'
+        state.active_id = '/Mesh_type_/Mesh/FileMesh'
         state.show_mesh = False
         state.block_to_add = None
 
@@ -54,8 +54,9 @@ class InputFileEditor:
         exe_info = ExecutableInfo()
         exe_info.setPath(state.executable)
         self.tree = InputTree(exe_info)
-
-        self.populate_simput_model(simput_manager)
+        self.simput_types = []
+        self.simput_manager = simput_manager
+        self.pxm = simput_manager.proxymanager
         self.set_input_file(state.input_file)
 
     def set_input_file(self, file_name):
@@ -88,101 +89,71 @@ class InputFileEditor:
             f.write(self.tree.getInputFileString())
         print("done")
 
-    def populate_simput_model(self, simput_manager):
-        # creates a simput model from all of the block in the InputTree object
+    def add_to_simput_model(self, type_info):
+        simput_type = type_info.path
+        params = type_info.orderedParameters()
 
-        # --- create simput model ---
-        block_model = {}
-        for path, block in self.tree.path_map.items():
-            if path == '/':  # skip root
-                continue
+        # add block parameters if type_info is actually a type
+        if type_info.blockType() == type_info.name:
+            params = params + type_info.parent.orderedParameters()
 
-            # accumulate simput types to create for this block
-            type_list = []
-            # add each type this block can be
-            for type_name, type_info in block.types.items():
-                type_list.append(type_info)
-            # add the block itself if it has no types
-            if len(type_list) == 0:
-                type_list.append(block)
-            # add each type from its star node
-            star_node = block.star_node
-            if star_node:
-                for type_name, type_info in star_node.types.items():
-                    type_list.append(type_info)
+        params_dict = {}
+        for param in params:
+            if param.name != 'type':  # type is handled outside simput
+                params_dict[param.name] = self.format_simput_param(param)
 
-            # create simput types
-            for type_info in type_list:
-                params = type_info.orderedParameters()
+        # sort params so that:
+        #  - required params are first
+        #  - everything else is alphabetical
+        params_dict = dict(sorted(params_dict.items(), key=lambda kv: (kv[1]['required'] == False, kv[0])))
 
-                # add block parameters if it is a type of this block
-                if type_info.parent.name == block.name:
-                    params = params + block.orderedParameters()
+        self.simput_types.append(simput_type)
+        yaml_str = yaml.dump({simput_type: params_dict}, sort_keys=False)
+        self.simput_manager.load_model(yaml_content=yaml_str)
 
-                params_dict = {}
-                for param in params:
-                    if param.name != 'type':  # type is handled outside simput
-                        params_dict[param.name] = self.format_simput_param(param)
+    def get_type_info(self, block_info):
+        type_info = block_info.getTypeBlock()
+        if not type_info and len(block_info.types) > 0:
+            # use first type as default
+            default_type = list(block_info.types)[0]
+            block_info.setBlockType(default_type)
+            type_info = block_info.getTypeBlock()
 
-                # sort params so that:
-                #  - required params are first
-                #  - everything else is alphabetical
-                params_dict = dict(sorted(params_dict.items(), key=lambda kv: (kv[1]['required'] == False, kv[0])))
+        if not type_info:
+            type_info = block_info
 
-                block_model[type_info.name] = params_dict
+        return type_info
 
-        output_file = self._server.state.model_file
-        if output_file:
-            print("writing model file...")
-            with open('model.yaml', 'w') as f:
-                yaml.dump(block_model, f, sort_keys=False)
-            print("done")
-
-        print("dumping yaml...")
-        yaml_str = yaml.dump(block_model, sort_keys=False)
-        print("loading model...")
-        simput_manager.load_model(yaml_content=yaml_str)
-        print("model loaded")
-        self.pxm = simput_manager.proxymanager
-
-    def add_block(self, block):
+    def add_block(self, block_info):
         # Adds block and all children to vuetify block tree and simput
 
         # --- create simput entry ---
-        simput_type = block.name
-        # vals = {}
-        params = block.orderedParameters()
+        type_info = self.get_type_info(block_info)
 
-        type_block = block.getTypeBlock()
-        if type_block is None and len(block.types) > 0:
-            # use first type as default
-            default_type = list(block.types)[0]
-            block.setBlockType(default_type)
-            type_block = block.getTypeBlock()
+        simput_type = type_info.path
 
-        if type_block is not None:
-            params = params + type_block.orderedParameters()
-            simput_type = type_block.name
+        if simput_type not in self.simput_types:
+            self.add_to_simput_model(type_info)
 
-        proxy_id = block.path + '_type_' + simput_type
-        simput_entry = self.pxm.create(simput_type, existing_obj=block, proxy_id=proxy_id)
+        proxy_id = block_info.path + '_type_' + simput_type
+        simput_entry = self.pxm.create(simput_type, existing_obj=block_info, proxy_id=proxy_id)
 
         # --- add to vuetify tree ---
         block_entry = {
             "id": proxy_id,
-            "name": block.name,
-            "path": block.path,
+            "name": block_info.name,
+            "path": block_info.path,
         }
 
         # check if block is a child
-        parent = block.parent
+        parent = block_info.parent
         if parent.path == '/':  # no parent
             # add block to tree sorted by name
             insort(self.block_tree, block_entry, key=lambda e: e['name'])
         else:
             # path is in form /ancestor_a/ancestor_b/.../parent/block
             # splitting by '/' gives ['', ancestor_a, ancestor_b, ... ,parent, block]
-            ancestors = block.path.split('/')[0:-1]
+            ancestors = block_info.path.split('/')[0:-1]
             block_list = self.block_tree
             # find block in tree
             for ancestor in ancestors:
@@ -195,15 +166,15 @@ class InputFileEditor:
 
             parent_entry['children'].append(block_entry)
 
-        star_node = block.star_node
+        star_node = block_info.star_node
         if star_node:
             child_types = list(star_node.types.keys())
         else:
             child_types = []
-        self.child_types[block.name] = child_types
+        self.child_types[block_info.name] = child_types
 
         # add children
-        for _, child in block.children.items():
+        for _, child in block_info.children.items():
             self.add_block(child)
 
     # TODO: implement this
@@ -214,6 +185,7 @@ class InputFileEditor:
         parent_info = self.tree.getBlockInfo('/' + parent)
         new_name = parent_info.findFreeChildName()
         new_block = self.tree.addUserBlock(parent_info.path, new_name)
+        new_block.setBlockType(child_type)
         self.add_block(new_block)
         self.update_state()
 
@@ -292,8 +264,14 @@ class InputFileEditor:
 
         block_path = state.active_id.split('_type_')[0]
         block_info = self.tree.getBlockInfo(block_path)
-        proxy_id = block_path + '_type_' + active_type
 
+        type_info = block_info.types[active_type]
+        simput_type = type_info.path
+
+        if simput_type not in self.simput_types:
+            self.add_to_simput_model(type_info)
+
+        proxy_id = block_path + '_type_' + simput_type
         proxy = pxm.get(proxy_id)
 
         if proxy:
@@ -303,7 +281,7 @@ class InputFileEditor:
             # create block info of new type
             new_block_info = block_info.copy(block_info.parent)
             new_block_info.setBlockType(active_type)
-            pxm.create(active_type, existing_obj=new_block_info, proxy_id=proxy_id)
+            pxm.create(simput_type, existing_obj=new_block_info, proxy_id=proxy_id)
 
         # insert new block into input file tree
         parent_info = block_info.parent
@@ -361,7 +339,7 @@ class InputFileEditor:
                     hoverable=True,
                     rounded=True,
                     activatable=True,
-                    active=("active_ids", ['/Mesh_type_FileMesh']),
+                    active=("active_ids", ['/Mesh_type_/Mesh/FileMesh']),
                     update_active="(active_ids) => {active_id = active_ids[0]}"
                 ):
                     with vuetify.Template(v_slot_label="{ item }"):
