@@ -45,6 +45,7 @@ class InputFileEditor:
 
         state.add_block_open = False
         state.active_id = '/Mesh_type_/Mesh/FileMesh'
+        state.active_name = None
         state.show_mesh = False
         state.block_to_add = None
 
@@ -269,6 +270,7 @@ class InputFileEditor:
         state = self._server.state
 
         if active_id is None:
+            state.active_name = None
             state.active_type = None
             state.active_types = []
             return
@@ -278,6 +280,10 @@ class InputFileEditor:
 
         state.show_mesh = active_block.name == 'Mesh' or active_block.parent.name == 'Mesh'
 
+        if active_block.user_added:
+            state.active_name = active_block.name
+        else:
+            state.active_name = None
         state.active_types = list(active_block.types.keys())
         state.active_type = active_block.blockType()
 
@@ -312,6 +318,18 @@ class InputFileEditor:
         self.tree.path_map[block_path] = new_block_info
 
         state.active_id = proxy_id
+
+    def on_active_name(self, active_name, **kwargs):
+        active_id = self._server.state.active_id
+        path = active_id.split('_type_')[0]
+        block_info = self.tree.getBlockInfo(path)
+        block_entry = self.get_block_tree_entry(block_info.path)
+        block_entry['name'] = active_name
+
+        parent_info = block_info.parent
+        parent_info.renameChildBlock(block_info.name, active_name)
+
+        self.update_state()
 
     def on_block_to_add(self, block_to_add, **kwargs):
         # this function triggers when a new block is added to the tree in the ui
@@ -435,6 +453,12 @@ class InputFileEditor:
                         items=("active_types",),
                         label="Type",
                         change=(self.on_active_type, "[$event]"),
+                    )
+                    vuetify.VTextField(
+                        v_model=("active_name"),
+                        v_if="active_name != null",
+                        label="Name",
+                        change=(self.on_active_name, "[$event]")
                     )
                     simput.SimputItem(item_id=("active_id",))
 
