@@ -9,6 +9,8 @@ from trame.ui.vuetify import VAppLayout
 from trame.widgets import vuetify, html, simput
 from trame_simput import get_simput_manager
 
+from peacock_trame import module
+
 from .fileEditor import (
     InputFileEditor,
     BlockFactory,
@@ -23,6 +25,8 @@ def _reload():
 
 def initialize(server):
     state, ctrl = server.state, server.controller
+
+    server.enable_module(module)
 
     state.trame__title = "peacock-trame"
 

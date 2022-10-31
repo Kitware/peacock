@@ -45,7 +45,8 @@ class InputFileEditor:
 
         state.add_block_open = False
         state.active_id = '/Mesh_type_/Mesh/FileMesh'
-        state.active_name = None
+        state.active_name = 'Mesh'
+        state.name_editable = False
         state.show_mesh = False
         state.block_to_add = None
 
@@ -184,8 +185,25 @@ class InputFileEditor:
         return parent_entry
 
     # TODO: implement this
-    def remove_block(self, block):
-        return
+    def remove_block(self, path):
+        block_info = self.tree.getBlockInfo(path)
+        parent_info = block_info.parent
+        parent_info.removeChildBlock(block_info.name)
+
+        state = self._server.state
+        if parent_info.path == '/':
+            for block_entry in state.block_tree:
+                if block_entry['path'] == path:
+                    break
+            state.block_tree.remove(block_entry)
+        else:
+            parent_entry = self.get_block_tree_entry(parent_info.path)
+            for block_entry in parent_entry['children']:
+                if block_entry['path'] == path:
+                    break
+            parent_entry['children'].remove(block_entry)
+
+        self.update_state()
 
     def add_child_block(self, parent_path, child_type):
         parent_info = self.tree.getBlockInfo(parent_path)
@@ -280,10 +298,8 @@ class InputFileEditor:
 
         state.show_mesh = active_block.name == 'Mesh' or active_block.parent.name == 'Mesh'
 
-        if active_block.user_added:
-            state.active_name = active_block.name
-        else:
-            state.active_name = None
+        state.active_name = active_block.name
+        state.name_editable = active_block.user_added
         state.active_types = list(active_block.types.keys())
         state.active_type = active_block.blockType()
 
@@ -377,6 +393,7 @@ class InputFileEditor:
                     style="width: 300px; flex: 1 1 0px; overflow: auto;",
                     hoverable=True,
                     rounded=True,
+                    dense=True,
                     activatable=True,
                     active=("active_ids", ['/Mesh_type_/Mesh/FileMesh']),
                     update_active="(active_ids) => {active_id = active_ids[0]}"
@@ -410,14 +427,7 @@ class InputFileEditor:
                                         click=(self.add_child_block, "[item.path, child_type]"),
                                     )
 
-                            with vuetify.VBtn(icon=True, click="""
-                                (event) => {
-                                    event.preventDefault(); event.stopPropagation();
-                                    let item_idx = block_tree.findIndex( (e) => e.name == item.name);
-                                    block_tree = block_tree.slice(0, item_idx).concat(block_tree.slice(item_idx+1));
-                                    unused_blocks.push(item);
-                                }"""
-                            ):
+                            with vuetify.VBtn(icon=True, click=(self.remove_block, "[item.path]")):
                                 vuetify.VIcon("mdi-delete")
 
                 with vuetify.VContainer(fluid=True, style="width: 100%; padding: 10px;"):
@@ -436,31 +446,45 @@ class InputFileEditor:
                 fluid=True,
                 classes="fill-height d-flex flex-column flex-nowrap",
             ):
-                with vuetify.VContainer(
+                with html.Div(
                     v_if="show_mesh",
-                    style="height: 50%;",
+                    style="width: 100%; height: 50vh; border-radius: 5px; overflow: hidden; margin-bottom: 10px;",
                 ):
                     vtk.VtkRemoteView(
                         self.create_vtk_render_window(),
                     )
 
-                with vuetify.VCol(
-                    style="overflow: auto;"
-                ):
-                    vuetify.VCombobox(
-                        v_model=("active_type",),
-                        v_if="active_type != null",
-                        items=("active_types",),
-                        label="Type",
-                        change=(self.on_active_type, "[$event]"),
-                    )
-                    vuetify.VTextField(
-                        v_model=("active_name"),
-                        v_if="active_name != null",
-                        label="Name",
-                        change=(self.on_active_name, "[$event]")
-                    )
-                    simput.SimputItem(item_id=("active_id",))
+                with vuetify.VCard(style="width: 100%;"):
+                    with vuetify.VCardTitle():
+                        vuetify.VTextField(
+                            v_model=("active_name"),
+                            v_if="active_name != null",
+                            disabled=("!name_editable",),
+                            label="Name",
+                            dense=True,
+                            hide_details=True,
+                            change=(self.on_active_name, "[$event]")
+                        )
+                        vuetify.VSpacer()
+                        vuetify.VCombobox(
+                            v_model=("active_type",),
+                            v_if="active_type != null",
+                            items=("active_types",),
+                            label="Type",
+                            dense=True,
+                            hide_details=True,
+                            change=(self.on_active_type, "[$event]"),
+                        )
+                    vuetify.VDivider()
+                    with vuetify.VCardText(
+                        style=("{height: show_mesh ? 'calc(50vh - 190px)' : 'calc(100vh - 190px)'}",),
+                        classes="pa-0",
+                    ):
+                        simput.SimputItem(
+                            item_id=("active_id",),
+                            style="overflow: auto; height: 100%;",
+                            classes="px-2 py-3",
+                        )
 
         return input_ui
 
@@ -486,6 +510,9 @@ class InputFileEditor:
         actor.GetProperty().SetRepresentationToWireframe()
 
         renderer = vtkRenderer()
+        renderer.SetBackground(0.5, 0.5, 0.5)
+        renderer.SetBackground2(0.75, 0.75, 0.75)
+        renderer.SetGradientBackground(True)
         renderer.AddActor(actor)
 
         renderWindow = vtkRenderWindow()
