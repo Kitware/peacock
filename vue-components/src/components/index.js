@@ -1,5 +1,7 @@
 import CustomWidget from './CustomWidget';
+import Editor from './Editor'
 
 export default {
-  'yourCustomWidget':CustomWidget,
+  'myWidget':CustomWidget,
+  'myEditor':Editor,
 };

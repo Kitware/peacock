@@ -38,6 +38,8 @@ def initialize(server):
 
     file_editor = InputFileEditor(server, simput_manager)
 
+    ctrl.reload_simput = simput_widget.reload_data
+
     with VAppLayout(server) as layout:
 
         layout.root = simput_widget

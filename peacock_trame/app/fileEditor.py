@@ -22,6 +22,8 @@ from vtkmodules.vtkFiltersGeometry import vtkCompositeDataGeometryFilter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
 import vtkmodules.vtkRenderingOpenGL2  # noqa
 
+from peacock_trame.widgets.editor import Editor
+
 
 class InputFileEditor:
     def __init__(self, server, simput_manager):
@@ -79,6 +81,8 @@ class InputFileEditor:
                 self.add_block(block)
             else:
                 insort(self.unused_blocks, {'name': block.name, 'path': block.path}, key=lambda e: e['name'])
+
+        state.file_str = self.tree.getInputFileString()
 
     def write_file(self):
         # write input file tree to disk
@@ -169,6 +173,8 @@ class InputFileEditor:
         # add children
         for child in block_info.children.values():
             self.add_block(child)
+
+        self._server.state.file_str = self.tree.getInputFileString()
 
     def get_block_tree_entry(self, path):
         # path is in form /ancestor_a/ancestor_b/.../parent/block
@@ -366,6 +372,25 @@ class InputFileEditor:
 
         self.update_state()
 
+    def on_file_str(self, file_str, **kwargs):
+        if self.tree.setInputFileData(file_str):
+            for block_info in self.tree.path_map.values():
+                if block_info.path == '/':
+                    continue
+                if block_info.included:
+                    type_info = self.get_type_info(block_info)
+                    proxy_id = block_info.path + '_type_' + type_info.path
+
+                    proxy = self.pxm.get(proxy_id)
+                    proxy._object = block_info
+                    proxy.fetch()
+                    proxy.commit()
+
+            self._server.controller.reload_simput()
+
+        else:
+            pass
+
     def update_state(self):
         # update trame server state to align with self
 
@@ -386,9 +411,18 @@ class InputFileEditor:
         )
 
         with input_ui:
+
+            with vuetify.VBtn(
+                icon=True,
+                style="position: absolute; top: 10px; right: 10px; z-index: 2;",
+                v_if=("show_file_editor == false",),
+                click="show_file_editor = true",
+            ):
+                vuetify.VIcon("mdi-chevron-left")
+
             with html.Div(classes="fill-height d-flex flex-column"):
                 with vuetify.VTreeview(
-                    v_if="block_tree.length > 0",
+                    v_if=("block_tree.length > 0",),
                     items=("block_tree",),
                     style="width: 300px; flex: 1 1 0px; overflow: auto;",
                     hoverable=True,
@@ -407,7 +441,7 @@ class InputFileEditor:
                             with vuetify.VMenu():
                                 with vuetify.Template(v_slot_activator="{on, attrs}",):
                                     with vuetify.VBtn(
-                                        v_if="item.child_types != undefined || item.hidden_children.length > 0",
+                                        v_if=("item.child_types != undefined || item.hidden_children.length > 0",),
                                         icon=True,
                                         v_on="on", v_bind="attrs",
                                         click="(event) => {event.stopPropagation(); event.preventDefault();}"
@@ -431,23 +465,22 @@ class InputFileEditor:
                                 vuetify.VIcon("mdi-delete")
 
                 with vuetify.VContainer(fluid=True, style="width: 100%; padding: 10px;"):
-                    with vuetify.VBtn(v_if="!add_block_open", click="add_block_open=true", style="width: 100%;"):
+                    with vuetify.VBtn(v_if=("!add_block_open",), click="add_block_open=true", style="width: 100%;"):
                         vuetify.VIcon('mdi-plus-circle')
 
-                    with vuetify.VBtn(v_if="add_block_open", click="add_block_open=false", style="width: 100%;"):
+                    with vuetify.VBtn(v_if=("add_block_open",), click="add_block_open=false", style="width: 100%;"):
                         vuetify.VIcon("mdi-close-circle")
                         html.P("Cancel", classes="ma-0")
 
-                with vuetify.VContainer(v_if="add_block_open", style="overflow-y: auto; flex: 1 1 0px; width: calc(100% - 20px);", classes="d-flex flex-column"):
+                with vuetify.VContainer(v_if=("add_block_open",), style="overflow-y: auto; flex: 1 1 0px; width: calc(100% - 20px);", classes="d-flex flex-column"):
                     with vuetify.VList():
                         vuetify.VListItem("{{block.name}}", v_for="block in unused_blocks", click="block_to_add = block.path; add_block_open = false;")
 
-            with vuetify.VContainer(
-                fluid=True,
-                classes="fill-height d-flex flex-column flex-nowrap",
+            with html.Div(
+                style="flex: 1 1 0px; height: 100%; display: flex; flex-direction: column; padding: 5px;",
             ):
                 with html.Div(
-                    v_if="show_mesh",
+                    v_if=("show_mesh",),
                     style="width: 100%; height: 50vh; border-radius: 5px; overflow: hidden; margin-bottom: 10px;",
                 ):
                     vtk.VtkRemoteView(
@@ -458,7 +491,7 @@ class InputFileEditor:
                     with vuetify.VCardTitle():
                         vuetify.VTextField(
                             v_model=("active_name"),
-                            v_if="active_name != null",
+                            v_if=("active_name != null",),
                             disabled=("!name_editable",),
                             label="Name",
                             dense=True,
@@ -468,7 +501,7 @@ class InputFileEditor:
                         vuetify.VSpacer()
                         vuetify.VCombobox(
                             v_model=("active_type",),
-                            v_if="active_type != null",
+                            v_if=("active_type != null",),
                             items=("active_types",),
                             label="Type",
                             dense=True,
@@ -485,6 +518,21 @@ class InputFileEditor:
                             style="overflow: auto; height: 100%;",
                             classes="px-2 py-3",
                         )
+            with html.Div(
+                v_if=("show_file_editor", False),
+                style="flex: 1 1 0px; height: 100%; position: relative;",
+            ):
+                Editor(
+                    contents=("file_str", ""),
+                    change=(self.on_file_str, "[$event]"),
+                )
+
+                with vuetify.VBtn(
+                    icon=True,
+                    style="position: absolute; top: 2px; left: 2px; z-index: 2; background: white; height: 24px; width: 24px;",
+                    click="show_file_editor = false",
+                ):
+                    vuetify.VIcon("mdi-chevron-right")
 
         return input_ui
 
