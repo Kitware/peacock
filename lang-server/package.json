@@ -1,0 +1,16 @@
+{
+  "name": "lang-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "py-language-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "vscode-languageserver": "^7.0.0",
+    "vscode-ws-jsonrpc": "^0.2.0",
+    "ws": "^8.5.0"
+  }
+}

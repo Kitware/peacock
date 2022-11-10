@@ -7,9 +7,17 @@ module.exports = {
       
     plugins: [
       new MonacoWebpackPlugin({
-        languages: ['plaintext']
-      })
+        languages: []
+      }),
     ]
+  },
+  chainWebpack: (config) => {
+    config.resolve.alias.set(
+      "vscode",
+      path.resolve(
+        "./node_modules/monaco-languageclient/lib/vscode-compatibility"
+      )
+    );
   },
   outputDir: path.resolve(__dirname, DST_PATH),
 };

@@ -524,6 +524,7 @@ class InputFileEditor:
             ):
                 Editor(
                     contents=("file_str", ""),
+                    filepath=("input_file", ""),
                     change=(self.on_file_str, "[$event]"),
                 )
 

@@ -16,6 +16,7 @@ class Editor(HtmlElement):
         )
         self._attr_names += [
             "contents",
+            "filepath",
         ]
         self._event_names += [
             "change",

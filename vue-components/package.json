@@ -3,9 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "dependencies": {
+    "@monaco-editor/loader": "^1.2.0",
     "core-js": "^3.6.5",
-    "monaco-editor": "^0.30.0",
-    "monaco-editor-webpack-plugin": "^6.0.0",
+    "monaco-editor": "^0.32.1",
+    "monaco-editor-webpack-plugin": "^7.0.1",
+    "monaco-languageclient": "^0.13.0",
+    "vscode-ws-jsonrpc": "^0.2.0",
     "vue": "2.6.11"
   },
   "scripts": {
