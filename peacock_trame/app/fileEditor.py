@@ -519,7 +519,7 @@ class InputFileEditor:
                             classes="px-2 py-3",
                         )
             with html.Div(
-                v_if=("show_file_editor", False),
+                v_show=("show_file_editor", False),
                 style="flex: 1 1 0px; height: 100%; position: relative;",
             ):
                 Editor(

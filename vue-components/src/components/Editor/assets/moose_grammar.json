@@ -1,0 +1,323 @@
+{
+    "scopeName": "input.moose",
+    "fileTypes": [
+      "i"
+    ],
+    "foldingStartMarker": "(^\\s*\\[[^.]+\\]\\s*$)",
+    "foldingStopMarker": "(^\\s*\\[\\]\\s*$)",
+    "name": "MOOSE Input",
+    "patterns": [
+      {
+        "include": "#comments"
+      },
+      {
+        "match": "(\\[)(Adaptivity|Bounds|Mesh|MeshGenerators|MeshModifiers|Kernels|AuxKernels|ScalarKernels|AuxScalarKernels|Variables|AuxVariables|Materials|Postprocessors|BCs|ICs|Executioner|Outputs|Problem|Debug|Preconditioning|UserObjects|Functions|GlobalParams|VectorPostprocessors|Dampers|DiracKernels|DGKernels|Constraints|NodalNormals|CoupledProblems|DeprecatedBlock|MultiApps|Transfers|InterfaceKernels|NodalKernels|Controls|Modules)(\\])",
+        "captures": {
+          "2": {
+            "name": "keyword.control.moose"
+          }
+        }
+      },
+      {
+        "match": "\\[(\\.\\/)(TimeStepper|TimePeriods|Quadrature|Predictor|Adaptivity|Indicators|Markers|Periodic|InitialCondition|MortarInterfaces)\\]",
+        "captures": {
+          "1": {
+            "name": "moose"
+          },
+          "2": {
+            "name": "keyword.control.moose"
+          }
+        }
+      },
+      {
+        "match": "\\[(\\.*/*)(.*)\\]",
+        "captures": {
+          "1": {
+            "name": "moose"
+          },
+          "2": {
+            "name": "support.function.moose"
+          }
+        }
+      },
+      {
+        "match": "\\b(type)\\s*(=)\\s*([^\\s]+)",
+        "captures": {
+          "1": {
+            "name": "keyword.control.moose"
+          },
+          "2": {
+            "name": "keyword.operator.moose"
+          },
+          "3": {
+            "name": "entity.name.function.moose"
+          }
+        }
+      },
+      {
+        "match": "\\[(\\.+/)\\]",
+        "captures": {
+          "1": {
+            "name": "moose"
+          }
+        }
+      },
+      {
+        "match": "\\[\\]",
+        "captures": {
+          "1": {
+            "name": "moose"
+          }
+        }
+      },
+      {
+        "match": "\\border\\s*(=)\\s*(CONSTANT|FIRST|SECOND|THIRD|FOURTH|FIFTH|SIXTH|SEVENTH|EIGHTH|NINTH)\\b",
+        "captures": {
+          "1": {
+            "name": "keyword.operator.assignment.moose"
+          },
+          "2": {
+            "name": "constant.language.moose"
+          }
+        }
+      },
+      {
+        "match": "\\bfamily\\s*(=)\\s*(LAGRANGE|MONOMIAL|HERMITE|SCALAR|HIERARCHIC|CLOUGH|XYZ|SZABAB|BERNSTEIN|L2_LAGRANGE|L2_HIERARCHIC)\\b",
+        "captures": {
+          "1": {
+            "name": "keyword.operator.assignment.moose"
+          },
+          "2": {
+            "name": "constant.language.moose"
+          }
+        }
+      },
+      {
+        "match": "\\belem_type\\s*(=)\\s*(EDGE|EDGE2|EDGE3|EDGE4|QUAD|QUAD4|QUAD8|QUAD9|TRI3|TRI6|HEX|HEX8|HEX20|HEX27|TET4|TET10|PRISM6|PRISM15|PRISM18)\\b",
+        "captures": {
+          "1": {
+            "name": "keyword.operator.assignment.moose"
+          },
+          "2": {
+            "name": "constant.language.moose"
+          }
+        }
+      },
+      {
+        "begin": "\\boutput_on\\s*(=)\\s*(')",
+        "beginCaptures": {
+          "1": {
+            "name": "keyword.operator.assignment.moose"
+          },
+          "2": {
+            "name": "punctuation.definition.string.begin.moose"
+          }
+        },
+        "end": "'",
+        "endCaptures": {
+          "0": {
+            "name": "punctuation.definition.string.end.moose"
+          }
+        },
+        "patterns": [
+          {
+            "include": "#output_on"
+          }
+        ]
+      },
+      {
+        "begin": "\\bexecute_on\\s*(=)\\s*(')",
+        "beginCaptures": {
+          "1": {
+            "name": "keyword.operator.assignment.moose"
+          },
+          "2": {
+            "name": "punctuation.definition.string.begin.moose"
+          }
+        },
+        "end": "'",
+        "endCaptures": {
+          "0": {
+            "name": "punctuation.definition.string.end.moose"
+          }
+        },
+        "patterns": [
+          {
+            "include": "#execute_on"
+          }
+        ]
+      },
+      {
+        "begin": "[a-z_A-Z0-9]+\\s*(=)\\s*(')",
+        "beginCaptures": {
+          "1": {
+            "name": "keyword.operator.assignment.moose"
+          },
+          "2": {
+            "name": "punctuation.definition.string.begin.moose"
+          }
+        },
+        "end": "'",
+        "endCaptures": {
+          "0": {
+            "name": "punctuation.definition.string.end.moose"
+          }
+        },
+        "patterns": [
+          {
+            "include": "#numbers"
+          },
+          {
+            "include": "#operators"
+          },
+          {
+            "include": "#fparser_variables"
+          }
+        ]
+      },
+      {
+        "begin": "[a-z_A-Z0-9]+\\s*(=)\\s*",
+        "beginCaptures": {
+          "1": {
+            "name": "keyword.operator.assignment.moose"
+          }
+        },
+        "end": "\n",
+        "patterns": [
+          {
+            "include": "#constants"
+          },
+          {
+            "include": "#numbers"
+          },
+          {
+            "include": "#comments"
+          }
+        ]
+      }
+    ],
+    "repository": {
+      "numbers": {
+        "patterns": [
+          {
+            "match": "\\b(\\d*\\.\\d+)\\b",
+            "captures": {
+              "1": {
+                "name": "constant.numeric.moose"
+              }
+            }
+          },
+          {
+            "match": "\\b(\\d+e[+-]{0,1}\\d+)\\b",
+            "captures": {
+              "1": {
+                "name": "constant.numeric.moose"
+              }
+            }
+          },
+          {
+            "match": "\\b(\\d*\\.\\d+e[+-]{0,1}\\d+)\\b",
+            "captures": {
+              "1": {
+                "name": "constant.numeric.moose"
+              }
+            }
+          },
+          {
+            "match": "\\b(\\d+)\\b",
+            "captures": {
+              "1": {
+                "name": "constant.numeric.moose"
+              }
+            }
+          }
+        ]
+      },
+      "output_on": {
+        "patterns": [
+          {
+            "match": "(?i)\\b(none|initial|linear|nonlinear|timestep_end|timestep_begin|final|failed|custom)\\b",
+            "name": "constant.language.moose"
+          }
+        ]
+      },
+      "execute_on": {
+        "patterns": [
+          {
+            "match": "(?i)\\b(initial|linear|nonlinear|timestep_end|timestep_begin|final|custom)\\b",
+            "name": "constant.language.moose"
+          }
+        ]
+      },
+      "constants": {
+        "patterns": [
+          {
+            "match": "(?i)\\b(false|true)\\b",
+            "name": "constant.language.moose"
+          }
+        ]
+      },
+      "escaped_char": {
+        "patterns": [
+          {
+            "match": "\\\\.",
+            "name": "constant.character.escape.moose"
+          }
+        ]
+      },
+      "operators": {
+        "patterns": [
+          {
+            "match": "[\\+\\*\\/\\^%\\-]",
+            "name": "keyword.operator.moose"
+          },
+          {
+            "match": "(abs|acos|acosh|arg|asin|atan|atan2|atanh|cbrt|ceil|conj|cos|cosh|cot|csc|exp|exp2|floor|hypot|if|imag|int|log|log10|log2|max|min|polar|pow|real|sec|sin|sinh|sqrt|tan|tanh|trunc|plog)\\(",
+            "captures": {
+              "1": {
+                "name": "support.function.moose"
+              }
+            }
+          }
+        ]
+      },
+      "fparser_variables": {
+        "patterns": [
+          {
+            "match": "\\b([a-zA-Z][a-z_A-Z0-9]*)\\b",
+            "captures": {
+              "1": {
+                "name": "variable.other.moose"
+              }
+            }
+          }
+        ]
+      },
+      "comments": {
+        "patterns": [
+          {
+            "match": "^\\s*((#+).*)",
+            "captures": {
+              "1": {
+                "name": "punctuation.definition.comment.moose"
+              },
+              "2": {
+                "name": "comment.line.number-sign.moose"
+              }
+            }
+          },
+          {
+            "match": "((#+).*)",
+            "captures": {
+              "1": {
+                "name": "punctuation.definition.comment.moose"
+              },
+              "2": {
+                "name": "comment.line.number-sign.moose"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
