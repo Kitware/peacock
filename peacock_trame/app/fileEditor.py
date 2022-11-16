@@ -5,6 +5,7 @@ from .core.input.ExecutableInfo import ExecutableInfo
 from pyaml import yaml
 from bisect import insort
 import os
+import asyncio
 
 from trame.widgets import vuetify, vtk, html, simput
 from trame_simput import get_simput_manager
@@ -51,9 +52,11 @@ class InputFileEditor:
         state.name_editable = False
         state.show_mesh = False
         state.block_to_add = None
+        state.block_to_remove = None
 
         state.change('active_id')(self.on_active_id)
         state.change('block_to_add')(self.on_block_to_add)
+        state.change('block_to_remove')(self.on_block_to_remove)
 
         exe_info = ExecutableInfo()
         exe_info.setPath(state.executable)
@@ -61,18 +64,44 @@ class InputFileEditor:
         self.simput_types = []
         self.simput_manager = simput_manager
         self.pxm = simput_manager.proxymanager
-        self.set_input_file(state.input_file)
+        self.file_str_task = None
+        self.updating_from_editor = False
+        self.set_input_file(file_name=state.input_file)
 
-    def set_input_file(self, file_name):
+        self.pxm.on(self.on_proxy_change)
+
+    def update_editor(self):
+        if self.file_str_task:
+            self.file_str_task.cancel()
+        self.file_str_task = asyncio.create_task(self.update_editor_task())
+
+    async def update_editor_task(self):
+        await asyncio.sleep(1)
+        state = self._server.state
+        state.file_str = self.tree.getInputFileString()
+        state.flush()
+        self.file_str_task = None
+
+    def on_proxy_change(self, topic, id=None, **kwargs):
+        if not self.updating_from_editor:
+            self.update_editor()
+
+    def set_input_file(self, file_name=None, file_str=None, update_file_str=True):
         # sets the input file of the InputTree object and populates simput/ui
+
+        if file_name:
+            valid = self.tree.setInputFile(file_name)
+        else:
+            valid = self.tree.setInputFileData(file_str)
+
+        if not valid:
+            return
 
         state = self._server.state
         self.block_tree = []  # list of tree entries as used by vuetify's vtreeview
         self.unused_blocks = []  # unused parent block names
         state.block_tree = self.block_tree
         state.unused_blocks = self.unused_blocks
-
-        self.tree.setInputFile(file_name)
 
         # --- populate input file tree ---
         root_block = self.tree.getBlockInfo('/')
@@ -82,7 +111,8 @@ class InputFileEditor:
             else:
                 insort(self.unused_blocks, {'name': block.name, 'path': block.path}, key=lambda e: e['name'])
 
-        state.file_str = self.tree.getInputFileString()
+        if update_file_str:
+            state.file_str = self.tree.getInputFileString()
 
     def write_file(self):
         # write input file tree to disk
@@ -174,8 +204,6 @@ class InputFileEditor:
         for child in block_info.children.values():
             self.add_block(child)
 
-        self._server.state.file_str = self.tree.getInputFileString()
-
     def get_block_tree_entry(self, path):
         # path is in form /ancestor_a/ancestor_b/.../parent/block
         # splitting by '/' gives ['', ancestor_a, ancestor_b, ... ,parent, block]
@@ -208,6 +236,10 @@ class InputFileEditor:
                 if block_entry['path'] == path:
                     break
             parent_entry['children'].remove(block_entry)
+
+        # delete proxy
+        proxy_id = path + '_type_' + self.get_type_info(block_info).path
+        self.pxm.delete(proxy_id)
 
         self.update_state()
 
@@ -342,16 +374,24 @@ class InputFileEditor:
         state.active_id = proxy_id
 
     def on_active_name(self, active_name, **kwargs):
-        active_id = self._server.state.active_id
-        path = active_id.split('_type_')[0]
+        state = self._server.state
+        active_id = state.active_id
+        path, simput_type = active_id.split('_type_')
         block_info = self.tree.getBlockInfo(path)
         block_entry = self.get_block_tree_entry(block_info.path)
         block_entry['name'] = active_name
 
         parent_info = block_info.parent
-        parent_info.renameChildBlock(block_info.name, active_name)
-
+        self.tree.renameUserBlock(parent_info.path, block_info.name, active_name)
         self.update_state()
+
+        # change proxy id
+        pxm = self.pxm
+        new_proxy_id = block_info.path + '_type_' + simput_type
+        proxy = pxm.get(active_id)
+        pxm.create(simput_type, existing_obj=block_info, proxy_id=new_proxy_id)
+        pxm.delete(active_id)
+        state.active_id = new_proxy_id
 
     def on_block_to_add(self, block_to_add, **kwargs):
         # this function triggers when a new block is added to the tree in the ui
@@ -369,31 +409,26 @@ class InputFileEditor:
         # add to block tree
         block = self.tree.getBlockInfo(block_to_add)
         self.add_block(block)
-
+        state.block_to_add = None
         self.update_state()
 
+    def on_block_to_remove(self, block_to_remove, **kwargs):
+        if block_to_remove is None:
+            return
+
+        self.remove_block(block_to_remove)
+        self._server.state.block_to_remove = None
+
     def on_file_str(self, file_str, **kwargs):
-        if self.tree.setInputFileData(file_str):
-            for block_info in self.tree.path_map.values():
-                if block_info.path == '/':
-                    continue
-                if block_info.included:
-                    type_info = self.get_type_info(block_info)
-                    proxy_id = block_info.path + '_type_' + type_info.path
-
-                    proxy = self.pxm.get(proxy_id)
-                    proxy._object = block_info
-                    proxy.fetch()
-                    proxy.commit()
-
-            self._server.controller.reload_simput()
-
-        else:
-            pass
+        # repopulate entire tree
+        # this is not optimal but it will work for now
+        self.updating_from_editor = True
+        self.set_input_file(file_str=file_str, update_file_str=False)
+        self._server.controller.reload_simput()
+        self.updating_from_editor = False
 
     def update_state(self):
         # update trame server state to align with self
-
         state = self._server.state
         state.unused_blocks = self.unused_blocks
         state.block_tree = self.block_tree
@@ -402,7 +437,6 @@ class InputFileEditor:
 
     def get_ui(self):
         # return ui for input file editor
-
         ctrl = self._server.controller
         input_ui = vuetify.VContainer(
             fluid=True,
@@ -461,7 +495,7 @@ class InputFileEditor:
                                         click=(self.add_child_block, "[item.path, child_type]"),
                                     )
 
-                            with vuetify.VBtn(icon=True, click=(self.remove_block, "[item.path]")):
+                            with vuetify.VBtn(icon=True, click="(event) => {event.stopPropagation(); event.preventDefault(); block_to_remove = item.path}"):
                                 vuetify.VIcon("mdi-delete")
 
                 with vuetify.VContainer(fluid=True, style="width: 100%; padding: 10px;"):

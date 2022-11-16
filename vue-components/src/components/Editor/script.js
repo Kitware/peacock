@@ -19,22 +19,21 @@ import VsCodeDarkTheme from './lib/vs-dark-plus-theme';
 import moose_config from './assets/moose_config.json'
 import moose_grammar from './assets/moose_grammar.json'
 
-window.setImmediate = window.setTimeout; 
+window.setImmediate = window.setTimeout;
 
 export default {
   name: "Editor",
   props: ['contents', 'filepath'],
   watch: {
     contents(contents) {
+      this.valueSetFromParent = true
       this.editor.setValue(contents)
     }
   },
   data() {
     return {
       editor: undefined,
-      options: {
-        //Monaco Editor Options
-      }
+      valueSetFromParent: false,
     }
   },
   methods: {
@@ -155,7 +154,12 @@ export default {
       MonacoServices.install(monaco);
       this.connectToLangServer();
 
-      this.editor.onDidChangeModelContent(() => this.$emit('change', this.editor.getValue()));
+      this.editor.onDidChangeModelContent(() => {
+        if (!this.valueSetFromParent)
+          this.$emit('change', this.editor.getValue())
+        else
+          this.valueSetFromParent = false
+      });
     })
   },
 };
