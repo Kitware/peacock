@@ -51,6 +51,7 @@ class InputFileEditor:
         state.active_name = 'Mesh'
         state.name_editable = False
         state.show_mesh = False
+        state.show_file_editor = False
         state.block_to_add = None
         state.block_to_remove = None
 
@@ -69,6 +70,11 @@ class InputFileEditor:
         self.set_input_file(file_name=state.input_file)
 
         self.pxm.on(self.on_proxy_change)
+
+    def toggle_editor(self):
+        # open monaco file editor if it is closed and visa versa
+        state = self._server.state
+        state.show_file_editor = not state.show_file_editor
 
     def update_editor(self):
         if self.file_str_task:
@@ -438,21 +444,12 @@ class InputFileEditor:
     def get_ui(self):
         # return ui for input file editor
         ctrl = self._server.controller
-        input_ui = vuetify.VContainer(
-            fluid=True,
+        input_ui = vuetify.VCol(
             classes="fill-height flex-nowrap d-flex ma-0 pa-0",
             style="position: relative;"
         )
 
         with input_ui:
-
-            with vuetify.VBtn(
-                icon=True,
-                style="position: absolute; top: 10px; right: 10px; z-index: 2;",
-                v_if=("show_file_editor == false",),
-                click="show_file_editor = true",
-            ):
-                vuetify.VIcon("mdi-chevron-left")
 
             with html.Div(classes="fill-height d-flex flex-column"):
                 with vuetify.VTreeview(
@@ -498,7 +495,7 @@ class InputFileEditor:
                             with vuetify.VBtn(icon=True, click="(event) => {event.stopPropagation(); event.preventDefault(); block_to_remove = item.path}"):
                                 vuetify.VIcon("mdi-delete")
 
-                with vuetify.VContainer(fluid=True, style="width: 100%; padding: 10px;"):
+                with html.Div(style="width: 100%; padding: 10px;"):
                     with vuetify.VBtn(v_if=("!add_block_open",), click="add_block_open=true", style="width: 100%;"):
                         vuetify.VIcon('mdi-plus-circle')
 
@@ -506,7 +503,7 @@ class InputFileEditor:
                         vuetify.VIcon("mdi-close-circle")
                         html.P("Cancel", classes="ma-0")
 
-                with vuetify.VContainer(v_if=("add_block_open",), style="overflow-y: auto; flex: 1 1 0px; width: calc(100% - 20px);", classes="d-flex flex-column"):
+                with vuetify.VCol(v_if=("add_block_open",), style="overflow-y: auto; flex: 1 1 0px; width: calc(100% - 20px);", classes="d-flex flex-column"):
                     with vuetify.VList():
                         vuetify.VListItem("{{block.name}}", v_for="block in unused_blocks", click="block_to_add = block.path; add_block_open = false;")
 
@@ -521,7 +518,7 @@ class InputFileEditor:
                         self.create_vtk_render_window(),
                     )
 
-                with vuetify.VCard(style="width: 100%;"):
+                with vuetify.VCard(style="width: 100%; flex-grow: 1;"):
                     with vuetify.VCardTitle():
                         vuetify.VTextField(
                             v_model=("active_name"),
@@ -544,7 +541,7 @@ class InputFileEditor:
                         )
                     vuetify.VDivider()
                     with vuetify.VCardText(
-                        style=("{height: show_mesh ? 'calc(50vh - 190px)' : 'calc(100vh - 190px)'}",),
+                        style=("{height: show_mesh ? 'calc(50vh - 140px)' : 'calc(100vh - 140px)'}",),
                         classes="pa-0",
                     ):
                         simput.SimputItem(
@@ -561,13 +558,6 @@ class InputFileEditor:
                     filepath=("input_file", ""),
                     change=(self.on_file_str, "[$event]"),
                 )
-
-                with vuetify.VBtn(
-                    icon=True,
-                    style="position: absolute; top: 2px; left: 2px; z-index: 2; background: white; height: 24px; width: 24px;",
-                    click="show_file_editor = false",
-                ):
-                    vuetify.VIcon("mdi-chevron-right")
 
         return input_ui
 

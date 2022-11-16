@@ -44,67 +44,40 @@ def initialize(server):
 
         layout.root = simput_widget
 
-        with vuetify.VContainer(fluid=True, classes="pa-0 fill-height d-flex flex-column"):
-            with vuetify.VContainer(fluid=True, classes="pa-0 flex-grow-0"):
-                with vuetify.VMenu():
-                    with vuetify.Template(v_slot_activator="{on, attrs}"):
-                        vuetify.VBtn('Peacock', v_bind="attrs", v_on="on")
+        with vuetify.VTabs(
+            v_model=("tab_idx", 0),
+            centered=True,
+            classes="flex-grow-0",
+            color='grey',
+            style="border-bottom: 1px solid gray",
+        ):
+            for tab_label in ['Input File', 'Execute',]:
+                vuetify.VTab(tab_label)
 
-                    with vuetify.VList():
-                        vuetify.VListItem("List Item")
-                        vuetify.VListItem("Preferences")
-                        vuetify.VListItem("Exit")
-
-                with vuetify.VMenu():
-                    with vuetify.Template(v_slot_activator="{on, attrs}"):
-                        vuetify.VBtn('Input File', v_bind="attrs", v_on="on")
-
-                    with vuetify.VList():
-                        with vuetify.VListItem("Open", click="console.log($refs.fileInput); $refs.fileInput.$children[0].$el.click()"):
-                            vuetify.VFileInput(v_model=("input_file", None), type="file", classes="d-none", ref="fileInput")
-                        vuetify.VListItem("Recently opened")
-                        vuetify.VListItem("Save", click=(file_editor.write_file))
-                        vuetify.VListItem("Save As")
-                        vuetify.VListItem("Clear")
-                        vuetify.VListItem("Check")
-                        vuetify.VListItem("View current input file")
-                        vuetify.VListItem("Background")
-
-                with vuetify.VMenu():
-                    with vuetify.Template(v_slot_activator="{on, attrs}"):
-                        vuetify.VBtn('E<u>x</u>ecute', tile="true", v_bind="attrs", v_on="on")
-
-                    with vuetify.VList():
-                        vuetify.VListItem("Recent working dirs")
-                        vuetify.VListItem("Recent executables")
-                        vuetify.VListItem("Recent arguments")
-                        vuetify.VListItem("Reload executable syntax")
-
-                with vuetify.VMenu():
-                    with vuetify.Template(v_slot_activator="{on, attrs}"):
-                        vuetify.VBtn('<u>R</u>esults', v_bind="attrs", v_on="on")
-
-                    with vuetify.VList():
-                        vuetify.VListItem("Background")
-                        with vuetify.VListItem():
-                            vuetify.VCheckbox()
-                            html.P("Show live script", classes="ma-0")
-                        vuetify.VListItem("Export")
-
-                with vuetify.VMenu():
-                    with vuetify.Template(v_slot_activator="{on, attrs}"):
-                        vuetify.VBtn('Debug', v_bind="attrs", v_on="on")
-
-                    with vuetify.VList():
-                        vuetify.VListItem("Show Python Console")
-
-            with vuetify.VTabs(classes="flex-grow-0", v_model=("tab_idx", 0)):
-                for tab_label in ['Input File', 'Execute', 'Exodus Viewer', 'Postprocess Viewer', 'Vector Postprocess Viewer']:
-                    vuetify.VTab(tab_label)
-
-            # input file editor
-            with vuetify.VContainer(v_if="tab_idx == 0", fluid=True, classes="flex-grow-1 pa-0 ma-0"):
-                file_editor.get_ui()
+        # input file editor
+        with vuetify.VCol(v_show=("tab_idx == 0",), classes="flex-grow-1 pa-0 ma-0"):
+            file_editor.get_ui()
+        with html.Div(
+            v_if=("tab_idx == 0",),
+            style="position: absolute; top: 10px; right: 10px; display: flex;",
+        ):
+            with vuetify.VBtn(
+                click=file_editor.write_file,
+                icon=True,
+            ):
+                vuetify.VIcon('mdi-content-save-outline')
+            with vuetify.VBtn(
+                click=file_editor.toggle_editor,
+                icon=True,
+            ):
+                vuetify.VIcon(
+                    'mdi-file-document-edit',
+                    v_if=("show_file_editor",),
+                ),
+                vuetify.VIcon(
+                    'mdi-file-document-edit-outline',
+                    v_if=("!show_file_editor",),
+                )
 
 
 def main(server=None, **kwargs):
