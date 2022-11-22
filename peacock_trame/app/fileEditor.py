@@ -441,6 +441,10 @@ class InputFileEditor:
         state.dirty('unused_blocks')
         state.dirty('block_tree')
 
+    def toggle_mesh(self):
+        state = self._server.state
+        state.show_mesh = not state.show_mesh
+
     def get_ui(self):
         # return ui for input file editor
         ctrl = self._server.controller

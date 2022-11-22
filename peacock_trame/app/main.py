@@ -77,6 +77,18 @@ def initialize(server):
             style="position: absolute; top: 10px; right: 10px; display: flex;",
         ):
             with vuetify.VBtn(
+                click=file_editor.toggle_mesh,
+                icon=True,
+            ):
+                vuetify.VIcon(
+                    'mdi-cube-outline',
+                    v_if=("!show_mesh",),
+                )
+                vuetify.VIcon(
+                    'mdi-cube-off-outline',
+                    v_if=("show_mesh",),
+                )
+            with vuetify.VBtn(
                 click=file_editor.write_file,
                 icon=True,
             ):
