@@ -23,7 +23,7 @@ from vtkmodules.vtkFiltersGeometry import vtkCompositeDataGeometryFilter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
 import vtkmodules.vtkRenderingOpenGL2  # noqa
 
-from peacock_trame.widgets.editor import Editor
+from peacock_trame.widgets import peacock
 
 
 class InputFileEditor:
@@ -553,7 +553,7 @@ class InputFileEditor:
                 v_show=("show_file_editor", False),
                 style="flex: 1 1 0px; height: 100%; position: relative;",
             ):
-                Editor(
+                peacock.Editor(
                     contents=("file_str", ""),
                     filepath=("input_file", ""),
                     change=(self.on_file_str, "[$event]"),

@@ -142,7 +142,7 @@ export default {
       });
       registerLanguages(languages, (language) => provider.fetchLanguageInfo(language), monaco);
 
-      this.editor = monaco.editor.create(document.getElementById("container"),
+      this.editor = monaco.editor.create(this.$el,
         {
           model: monaco.editor.createModel(this.contents, 'moose', monaco.Uri.parse("file://" + this.filepath)),
           theme: 'vs-dark',

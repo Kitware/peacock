@@ -1,7 +1,7 @@
-import CustomWidget from './CustomWidget';
 import Editor from './Editor'
+import Terminal from './Terminal'
 
 export default {
-  'myWidget':CustomWidget,
-  'myEditor':Editor,
+  Editor,
+  Terminal,
 };

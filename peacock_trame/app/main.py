@@ -16,6 +16,9 @@ from .fileEditor import (
     BlockFactory,
     BlockAdapter,
 )
+from .executor import (
+    Executor,
+)
 
 def _reload():
     server = get_server()
@@ -37,6 +40,7 @@ def initialize(server):
     simput_widget = simput.Simput(simput_manager, trame_server=server)
 
     file_editor = InputFileEditor(server, simput_manager)
+    executor = Executor(server)
 
     ctrl.reload_simput = simput_widget.reload_data
 
@@ -78,6 +82,10 @@ def initialize(server):
                     'mdi-file-document-edit-outline',
                     v_if=("!show_file_editor",),
                 )
+
+        # executor
+        with vuetify.VCol(v_show=("tab_idx == 1",), classes="flex-grow-1 pa-0 ma-0"):
+            executor.get_ui()
 
 
 def main(server=None, **kwargs):

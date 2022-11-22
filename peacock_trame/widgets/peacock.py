@@ -11,7 +11,7 @@ class HtmlElement(AbstractElement):
 class Editor(HtmlElement):
     def __init__(self, **kwargs):
         super().__init__(
-            "my-editor",
+            "editor",
             **kwargs,
         )
         self._attr_names += [
@@ -21,3 +21,19 @@ class Editor(HtmlElement):
         self._event_names += [
             "change",
         ]
+
+class Terminal(HtmlElement):
+    _next_id = 0
+    def __init__(self, **kwargs):
+        Terminal._next_id += 1
+        self._ref = kwargs.get('ref', f"terminal_{Terminal._next_id}")
+        super().__init__(
+            "terminal",
+            **{
+                **kwargs,
+                'ref': self._ref
+            }
+        )
+
+    def write(self, string):
+        self.server.js_call(self._ref, "write", string)
