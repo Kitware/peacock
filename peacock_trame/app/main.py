@@ -8,6 +8,7 @@ from trame.app import get_server, dev
 from trame.ui.vuetify import VAppLayout
 from trame.widgets import vuetify, html, simput
 from trame_simput import get_simput_manager
+from trame.assets.local import LocalFileManager
 
 from peacock_trame import module
 
@@ -33,6 +34,10 @@ def initialize(server):
 
     state.trame__title = "peacock-trame"
 
+    favicons = LocalFileManager(__file__)
+    favicons.url("peacock_logo", "./logos/peacock_logo.ico")
+    state.trame__favicon = favicons["peacock_logo"]
+
     simput_manager = get_simput_manager(
         object_factory=BlockFactory(),
         object_adapter=BlockAdapter(),
@@ -48,15 +53,21 @@ def initialize(server):
 
         layout.root = simput_widget
 
-        with vuetify.VTabs(
-            v_model=("tab_idx", 0),
-            centered=True,
-            classes="flex-grow-0",
-            color='grey',
-            style="border-bottom: 1px solid gray",
-        ):
-            for tab_label in ['Input File', 'Execute',]:
-                vuetify.VTab(tab_label)
+        with html.Div(style="display: flex; border-bottom: 1px solid gray",):
+            html.Img(
+                src=("trame__favicon",),
+                height=50,
+                width=50,
+                style="padding: 5px;",
+            )
+            with vuetify.VTabs(
+                v_model=("tab_idx", 0),
+                # centered=True,
+                classes="flex-grow-0",
+                color='grey',
+            ):
+                for tab_label in ['Input File', 'Execute',]:
+                    vuetify.VTab(tab_label)
 
         # input file editor
         with vuetify.VCol(v_show=("tab_idx == 0",), classes="flex-grow-1 pa-0 ma-0"):
