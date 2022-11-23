@@ -347,7 +347,7 @@ class InputFileEditor:
         state.active_types = list(active_block.types.keys())
         state.active_type = active_block.blockType()
 
-    def on_active_type(self, active_type, **kwargs):
+    def on_active_type(self, active_type, old_type,**kwargs):
         state = self._server.state
         pxm = self.pxm
 
@@ -370,7 +370,17 @@ class InputFileEditor:
             # create block info of new type
             new_block_info = block_info.copy(block_info.parent)
             new_block_info.setBlockType(active_type)
-            pxm.create(simput_type, existing_obj=new_block_info, proxy_id=proxy_id)
+            proxy = pxm.create(simput_type, existing_obj=new_block_info, proxy_id=proxy_id)
+
+        # copy common parameters
+        old_proxy_id = block_path + '_type_' + block_info.types[old_type].path
+        old_proxy = pxm.get(old_proxy_id)
+        new_props = proxy.list_property_names()
+        for prop_name in old_proxy.list_property_names():
+            if prop_name in new_props:
+                old_val = old_proxy.get_property(prop_name)
+                proxy.set_property(prop_name, old_val)
+        self._server.controller.reload_simput()
 
         # insert new block into input file tree
         parent_info = block_info.parent
@@ -541,7 +551,7 @@ class InputFileEditor:
                             label="Type",
                             dense=True,
                             hide_details=True,
-                            change=(self.on_active_type, "[$event]"),
+                            change=(self.on_active_type, "[$event, active_type]"),
                         )
                     vuetify.VDivider()
                     with vuetify.VCardText(
