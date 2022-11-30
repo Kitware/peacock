@@ -380,7 +380,7 @@ class InputFileEditor:
             if prop_name in new_props:
                 old_val = old_proxy.get_property(prop_name)
                 proxy.set_property(prop_name, old_val)
-        self._server.controller.reload_simput()
+        self._server.controller.simput_reload_data()
 
         # insert new block into input file tree
         parent_info = block_info.parent

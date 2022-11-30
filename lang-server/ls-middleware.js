@@ -14,13 +14,18 @@ if (args.length < 3) {
 
 const server_path = process.argv[2]
 
+process.on('disconnect', function() {
+  console.log('exiting')
+  process.exit();
+})
+
 function launch (socket) {
   const reader = new rpc.WebSocketMessageReader(socket)
   const writer = new rpc.WebSocketMessageWriter(socket)
   const socketConnection = server.createConnection(reader, writer, () => socket.dispose())
   const serverConnection = server.createServerProcess('JSON', 'node', [server_path, '--stdio'])
   server.forward(socketConnection, serverConnection, message => {
-    console.log(message)
+    // console.log(message)
     if (rpc.isRequestMessage(message)) {
       if (message.method === lsp.InitializeRequest.type.method) {
         const initializeParams = message.params

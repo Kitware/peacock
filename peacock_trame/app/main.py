@@ -4,12 +4,15 @@ import os
 moose_dir = os.environ.get("MOOSE_DIR", None)
 sys.path.append(os.path.join(moose_dir, 'python'))
 
+import subprocess
+
 from trame.app import get_server, dev
 from trame.ui.vuetify import VAppLayout
 from trame.widgets import vuetify, html, simput
 from trame_simput import get_simput_manager
 from trame.assets.local import LocalFileManager
 
+import peacock_trame
 from peacock_trame import module
 
 from .fileEditor import (
@@ -47,7 +50,13 @@ def initialize(server):
     file_editor = InputFileEditor(server, simput_manager)
     executor = Executor(server)
 
-    ctrl.reload_simput = simput_widget.reload_data
+    ctrl.simput_reload_data = simput_widget.reload_data
+
+    if state.lang_server_path:
+        # start language server
+        # TODO: kill child process after unexpected exit
+        lang_server_dir = os.path.join(os.path.dirname(peacock_trame.__file__), '..', 'lang-server')
+        lang_server_process = subprocess.Popen(["npm", "run", "--prefix", lang_server_dir, "start", state.lang_server_path])
 
     with VAppLayout(server) as layout:
 
@@ -89,11 +98,6 @@ def initialize(server):
                     v_if=("show_mesh",),
                 )
             with vuetify.VBtn(
-                click=file_editor.write_file,
-                icon=True,
-            ):
-                vuetify.VIcon('mdi-content-save-outline')
-            with vuetify.VBtn(
                 click=file_editor.toggle_editor,
                 icon=True,
             ):
@@ -105,6 +109,11 @@ def initialize(server):
                     'mdi-file-document-edit-outline',
                     v_if=("!show_file_editor",),
                 )
+            with vuetify.VBtn(
+                click=file_editor.write_file,
+                icon=True,
+            ):
+                vuetify.VIcon('mdi-content-save-outline')
 
         # executor
         with vuetify.VCol(v_show=("tab_idx == 1",), classes="flex-grow-1 pa-0 ma-0"):
@@ -123,15 +132,16 @@ def main(server=None, **kwargs):
     parser = server.cli
     parser.add_argument("-I", "--input", help="Input file (.i)")
     parser.add_argument("-E", "--exe", help="Executable")
-    parser.add_argument("-o", "--output", help="Output simput model yaml file")
+    parser.add_argument("-L", "--lang_server", help="Path to language server executable")
     (args, _unknown) = parser.parse_known_args()
     state = server.state
     if args.input is None or args.exe is None:
         print("Usage: \n\tpeacock-trame -I /path/to/input/file -E /path/to/executable [options]")
         return
-    state.input_file = args.input
-    state.executable = args.exe
-    state.model_file = args.output
+    state.input_file = os.path.abspath(args.input)
+    state.executable = os.path.abspath(args.exe)
+    if args.lang_server:
+        state.lang_server_path = os.path.abspath(args.lang_server)
 
     # Make UI auto reload
     server.controller.on_server_reload.add(_reload)
