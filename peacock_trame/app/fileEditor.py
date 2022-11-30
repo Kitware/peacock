@@ -6,6 +6,7 @@ from pyaml import yaml
 from bisect import insort
 import os
 import asyncio
+import difflib
 
 from trame.widgets import vuetify, vtk, html, simput
 from trame_simput import get_simput_manager
@@ -101,7 +102,7 @@ class InputFileEditor:
             valid = self.tree.setInputFileData(file_str)
 
         if not valid:
-            return
+            return False
 
         state = self._server.state
         self.block_tree = []  # list of tree entries as used by vuetify's vtreeview
@@ -119,6 +120,8 @@ class InputFileEditor:
 
         if update_file_str:
             state.file_str = self.tree.getInputFileString()
+
+        return True
 
     def write_file(self):
         # write input file tree to disk
@@ -388,6 +391,7 @@ class InputFileEditor:
         self.tree.path_map[block_path] = new_block_info
 
         state.active_id = proxy_id
+        self.update_editor()
 
     def on_active_name(self, active_name, **kwargs):
         state = self._server.state
@@ -439,8 +443,24 @@ class InputFileEditor:
         # repopulate entire tree
         # this is not optimal but it will work for now
         self.updating_from_editor = True
-        self.set_input_file(file_str=file_str, update_file_str=False)
-        self._server.controller.reload_simput()
+        if self.set_input_file(file_str=file_str, update_file_str=False):
+            state = self._server.state
+            path, active_type_path = state.active_id.split('_type_')
+            active_block = self.tree.getBlockInfo(path)
+            if not active_block:
+                # active block is not in new file tree
+                # find most similar block and switch to it
+                new_path = difflib.get_close_matches(path, self.tree.path_map.keys())[0]
+                state.active_id = new_path + '_type_' + active_type_path
+                state.active_ids = [state.active_id]
+            else:
+                # check if active type changed
+                new_type_block = active_block.getTypeBlock()
+                if new_type_block.name != state.active_type:
+                    state.active_type = new_type_block.name
+                    state.active_id = path + '_type_' + new_type_block.path
+                    state.active_ids = [state.active_id]
+            self._server.controller.simput_reload_data()
         self.updating_from_editor = False
 
     def update_state(self):
