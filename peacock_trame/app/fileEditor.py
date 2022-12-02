@@ -77,21 +77,24 @@ class InputFileEditor:
         state = self._server.state
         state.show_file_editor = not state.show_file_editor
 
-    def update_editor(self):
+    def update_editor(self, delay=0):
         if self.file_str_task:
             self.file_str_task.cancel()
-        self.file_str_task = asyncio.create_task(self.update_editor_task())
+        self.file_str_task = asyncio.create_task(self.update_editor_task(delay))
 
-    async def update_editor_task(self):
-        await asyncio.sleep(1)
+    async def update_editor_task(self, delay):
+        await asyncio.sleep(delay)
         state = self._server.state
         state.file_str = self.tree.getInputFileString()
         state.flush()
         self.file_str_task = None
 
     def on_proxy_change(self, topic, id=None, **kwargs):
-        if not self.updating_from_editor:
-            self.update_editor()
+        if not self.updating_from_editor:  # only update editor when change comes from simput
+            if topic == 'changed':
+                # updating editor sometimes de-focuses parameter input field
+                # adding delay gives time for user to finish input
+                self.update_editor(delay=0.5)
 
     def set_input_file(self, file_name=None, file_str=None, update_file_str=True):
         # sets the input file of the InputTree object and populates simput/ui
@@ -387,7 +390,8 @@ class InputFileEditor:
 
         # insert new block into input file tree
         parent_info = block_info.parent
-        parent_info.children[block_info.name] = new_block_info
+        parent_info.removeChildBlock(block_info.name)
+        parent_info.addChildBlock(new_block_info)
         self.tree.path_map[block_path] = new_block_info
 
         state.active_id = proxy_id
