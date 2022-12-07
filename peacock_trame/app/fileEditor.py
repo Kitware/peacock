@@ -1,6 +1,7 @@
 # existing backend imports
 from .core.input.InputTree import InputTree
 from .core.input.ExecutableInfo import ExecutableInfo
+from .core.common import ExeLauncher
 
 from pyaml import yaml
 from bisect import insort
@@ -18,9 +19,12 @@ from vtkmodules.vtkRenderingCore import (
     vtkRenderer,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
+    vtkCompositeDataDisplayAttributes,
 )
+from vtkmodules.vtkFiltersExtraction import vtkExtractBlock
+from vtkmodules.vtkRenderingOpenGL2 import vtkCompositePolyDataMapper2
 from vtkmodules.vtkIOExodus import vtkExodusIIReader
-from vtkmodules.vtkFiltersGeometry import vtkCompositeDataGeometryFilter
+from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
 import vtkmodules.vtkRenderingOpenGL2  # noqa
 
@@ -417,6 +421,24 @@ class InputFileEditor:
         pxm.delete(active_id)
         state.active_id = new_proxy_id
 
+    def on_active_blocks(self, active_blocks, **kwargs):
+        for idx, block in enumerate(self.blocks):
+            # flat index is idx + 1 because parent node has flat idx of 0
+            self.block_mapper.SetBlockVisibility(idx + 1, block in active_blocks)
+        self.vtkRenderWindow.Render()
+
+    def on_active_boundaries(self, active_boundaries, **kwargs):
+        for idx, boundary in enumerate(self.boundaries):
+            # flat index is idx + 1 because parent node has flat idx of 0
+            self.boundary_mapper.SetBlockVisibility(idx + 1, boundary in active_boundaries)
+        self.vtkRenderWindow.Render()
+
+    def on_active_nodesets(self, active_nodesets, **kwargs):
+        for idx, nodeset in enumerate(self.nodesets):
+            # flat index is idx + 1 because parent node has flat idx of 0
+            self.nodeset_mapper.SetBlockVisibility(idx + 1, nodeset in active_nodesets)
+        self.vtkRenderWindow.Render()
+
     def on_block_to_add(self, block_to_add, **kwargs):
         # this function triggers when a new block is added to the tree in the ui
 
@@ -550,11 +572,45 @@ class InputFileEditor:
             ):
                 with html.Div(
                     v_if=("show_mesh",),
-                    style="width: 100%; height: 50vh; border-radius: 5px; overflow: hidden; margin-bottom: 10px;",
+                    style="position: relative; width: 100%; height: 50vh; border-radius: 5px; overflow: hidden; margin-bottom: 10px;",
                 ):
                     vtk.VtkRemoteView(
                         self.create_vtk_render_window(),
                     )
+
+                    # block, boundary, nodeset selector
+                    with html.Div(
+                        style="position: absolute; bottom: 10px; left: 10px; display: flex;"
+                    ):
+                        vuetify.VCombobox(
+                            label="Blocks",
+                            v_model=("active_blocks",),
+                            items=("mesh_blocks",),
+                            multiple=True,
+                            dense=True,
+                            hide_details=True,
+                            change=(self.on_active_blocks, "[$event]"),
+                            style="padding-right: 5px;",
+                        )
+                        vuetify.VCombobox(
+                            label="Boundaries",
+                            v_model=("active_boundaries", []),
+                            items=("mesh_boundaries",),
+                            multiple=True,
+                            dense=True,
+                            hide_details=True,
+                            change=(self.on_active_boundaries, "[$event]"),
+                            style="padding-right: 5px;",
+                        )
+                        vuetify.VCombobox(
+                            label="Nodesets",
+                            v_model=("active_nodesets", []),
+                            items=("mesh_nodesets",),
+                            multiple=True,
+                            dense=True,
+                            hide_details=True,
+                            change=(self.on_active_nodesets, "[$event]"),
+                        )
 
                 with vuetify.VCard(style="width: 100%; flex-grow: 1;"):
                     with vuetify.VCardTitle():
@@ -565,7 +621,7 @@ class InputFileEditor:
                             label="Name",
                             dense=True,
                             hide_details=True,
-                            change=(self.on_active_name, "[$event]")
+                            change=(self.on_active_name, "[$event]"),
                         )
                         vuetify.VSpacer()
                         vuetify.VCombobox(
@@ -600,31 +656,101 @@ class InputFileEditor:
         return input_ui
 
     def create_vtk_render_window(self):
-        mesh_file_name = self.tree.getParamInfo('/Mesh', 'file').getValue()
+        state = self._server.state
+        input_file = state.input_file
+        exe_path = state.executable
+        tmp_mesh_file = f"{os.path.splitext(input_file)[0]}_tmp_mesh.e"
+
+        ExeLauncher.runExe(exe_path, ['-i', input_file, '--mesh-only', tmp_mesh_file])
 
         reader = vtkExodusIIReader()
-        reader.SetFileName(mesh_file_name)
-        reader.UpdateInformation()
-        reader.SetTimeStep(10)
-        reader.SetAllArrayStatus(vtkExodusIIReader.NODAL, 1)  # enables all NODAL variables
+        reader.SetFileName(tmp_mesh_file)
         reader.Update()
 
-        geometry = vtkCompositeDataGeometryFilter()
-        geometry.SetInputConnection(0, reader.GetOutputPort(0))
-        geometry.Update()
+        # indices of exodus object types in the output multi-block
+        exodus_mb_type_order = [
+            vtkExodusIIReader.ELEM_BLOCK,   # 0
+            vtkExodusIIReader.FACE_BLOCK,   # 1
+            vtkExodusIIReader.EDGE_BLOCK,   # 2
+            vtkExodusIIReader.ELEM_SET,     # 3
+            vtkExodusIIReader.SIDE_SET,     # 4
+            vtkExodusIIReader.FACE_SET,     # 5
+            vtkExodusIIReader.EDGE_SET,     # 6
+            vtkExodusIIReader.NODE_SET      # 7
+        ]
 
-        mapper = vtkPolyDataMapper()
-        mapper.SetInputData(geometry.GetOutput())
+        block_type = vtkExodusIIReader.ELEM_BLOCK
+        boundary_type = vtkExodusIIReader.SIDE_SET
+        nodeset_type = vtkExodusIIReader.NODE_SET
 
-        actor = vtkActor()
-        actor.SetMapper(mapper)
-        actor.GetProperty().SetRepresentationToWireframe()
+        # traverse exodus multi-block
+        blocks = []
+        block_idxs = []
+        boundaries = []
+        boundary_idxs = []
+        nodesets = []
+        nodeset_idxs = []
+        index = 0
+        for obj_type in exodus_mb_type_order:
+            index += 1
+            for j in range(reader.GetNumberOfObjects(obj_type)):
+                index += 1
+                name = reader.GetObjectName(obj_type, j)
+                if name.startswith('Unnamed'):
+                    name = reader.GetObjectId(obj_type, j)
+                reader.SetObjectStatus(obj_type, j, 1)  # load for rendering
+                if obj_type == block_type:
+                    blocks.append(name)
+                    block_idxs.append(index)
+                elif obj_type == boundary_type:
+                    boundaries.append(name)
+                    boundary_idxs.append(index)
+                elif obj_type == nodeset_type:
+                    nodesets.append(name)
+                    nodeset_idxs.append(index)
+
+        def create_vtk_pipeline(mb_idxs):
+            # extracts group of blocks from exodus tree and creates rendering pipeline
+            extractor = vtkExtractBlock()
+            extractor.SetInputConnection(reader.GetOutputPort())
+            for idx in mb_idxs:
+                extractor.AddIndex(idx)
+            geometry = vtkGeometryFilter()
+            geometry.SetInputConnection(extractor.GetOutputPort())
+            mapper = vtkCompositePolyDataMapper2()
+            mapper.SetInputConnection(geometry.GetOutputPort())
+            cdsa = vtkCompositeDataDisplayAttributes()
+            mapper.SetCompositeDataDisplayAttributes(cdsa)
+            actor = vtkActor()
+            actor.SetMapper(mapper)
+
+            return actor, mapper
+
+        block_actor, block_mapper = create_vtk_pipeline(block_idxs)
+        boundary_actor, boundary_mapper = create_vtk_pipeline(boundary_idxs)
+        nodeset_actor, nodeset_mapper = create_vtk_pipeline(nodeset_idxs)
+
+        block_actor.GetProperty().SetRepresentationToWireframe()
+        boundary_actor.GetProperty().SetRepresentationToSurface()
+        nodeset_actor.GetProperty().SetRepresentationToPoints()
+        nodeset_actor.GetProperty().SetPointSize(5)
+
+        # only display blocks to start
+        # not sure why, but un-adjusted flat indexes work here, unlike after rendering
+        for idx in range(len(boundaries)):
+            boundary_mapper.SetBlockVisibility(idx, 0)
+            boundary_mapper.SetBlockColor(idx, [1, 0, 0])
+        for idx in range(len(nodesets)):
+            nodeset_mapper.SetBlockVisibility(idx, 0)
+            nodeset_mapper.SetBlockColor(idx, [1, 0, 0])
 
         renderer = vtkRenderer()
         renderer.SetBackground(0.5, 0.5, 0.5)
         renderer.SetBackground2(0.75, 0.75, 0.75)
         renderer.SetGradientBackground(True)
-        renderer.AddActor(actor)
+        renderer.AddActor(block_actor)
+        renderer.AddActor(boundary_actor)
+        renderer.AddActor(nodeset_actor)
 
         renderWindow = vtkRenderWindow()
         renderWindow.AddRenderer(renderer)
@@ -634,7 +760,28 @@ class InputFileEditor:
         interactor.SetRenderWindow(renderWindow)
         interactor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 
+        self.block_mapper = block_mapper
+        self.boundary_mapper = boundary_mapper
+        self.nodeset_mapper = nodeset_mapper
+        self.vtkRenderWindow = renderWindow
+        self.blocks = blocks
+        self.boundaries = boundaries
+        self.nodesets = nodesets
+
+        state.active_blocks = blocks
+        state.mesh_blocks = blocks
+        state.mesh_boundaries = boundaries
+        state.mesh_nodesets = nodesets
+
         return renderWindow
+
+    def show_boundary(self, name):
+        mapper = self.vtkMapper
+
+        flat_idx = self.flat_idxs['Side Sets'][name]
+        mapper.SetBlockOpacity(1, 0.5)
+        mapper.SetBlockVisibility(flat_idx, 1)
+        mapper.SetBlockColor(flat_idx, [1, 0, 0])
 
 class BlockFactory(ObjectFactory):
     def __init__(self):
