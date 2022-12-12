@@ -57,8 +57,7 @@ class LanguageServerManager:
                         self.ws = ws
                         self.send_to_client({'type': "open"})
                         connected = True
-                        while True:
-                            msg = await ws.receive()
+                        async for msg in ws:
                             # print("LANG SERVER MSG: ", msg.data)
                             if msg.type == aiohttp.WSMsgType.CLOSE:
                                 break

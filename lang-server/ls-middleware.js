@@ -22,6 +22,11 @@ function launch (socket) {
   const serverConnection = server.createServerProcess('JSON', 'node', [server_path, '--stdio'])
   server.forward(socketConnection, serverConnection, message => {
     // console.log(message)
+    if (message.method == 'serverDebugNotification') {
+      // server debug messages are huge and slow down the editor
+      // we don't use them for any functionality so we will ignore them for now
+      return null
+    }
     if (rpc.isRequestMessage(message)) {
       if (message.method === lsp.InitializeRequest.type.method) {
         const initializeParams = message.params
