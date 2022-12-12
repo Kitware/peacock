@@ -1,4 +1,3 @@
-import asyncio
 import aiohttp
 from aiohttp.client_exceptions import ClientConnectionError
 import socket
@@ -6,14 +5,12 @@ from trame.app import asynchronous
 import os
 import peacock_trame
 import subprocess
-from wslink import register as exportRpc
-import asyncio
 
 
 class LanguageServerManager:
     def __init__(self, trame_server):
         self.server = trame_server
-        state, ctrl = trame_server.state, trame_server.controller
+        state = trame_server.state
 
         @trame_server.trigger('trame_lang_server')
         def on_lang_server(type, event):
@@ -22,7 +19,6 @@ class LanguageServerManager:
                 self.send_to_lang_server(event)
             if type == 'close':
                 self.ws.close()
-                
 
         # use socket bound to port 0 to find random open port
         sock = socket.socket()
@@ -33,7 +29,7 @@ class LanguageServerManager:
         # start language server
         # TODO: kill child process after unexpected exit
         lang_server_dir = os.path.join(os.path.dirname(peacock_trame.__file__), '..', 'lang-server')
-        lang_server_process = subprocess.Popen([
+        subprocess.Popen([
             "npm",
             "run",
             "--prefix",
@@ -76,4 +72,3 @@ class LanguageServerManager:
 
     def send_to_client(self, msg):
         self.server.protocol.publish("trame.lang.server", msg)
-

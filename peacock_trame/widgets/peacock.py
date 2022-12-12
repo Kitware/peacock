@@ -8,6 +8,7 @@ class HtmlElement(AbstractElement):
         if self.server:
             self.server.enable_module(module)
 
+
 class Editor(HtmlElement):
     def __init__(self, **kwargs):
         super().__init__(
@@ -22,8 +23,10 @@ class Editor(HtmlElement):
             "change",
         ]
 
+
 class Terminal(HtmlElement):
     _next_id = 0
+
     def __init__(self, **kwargs):
         Terminal._next_id += 1
         self._ref = kwargs.get('ref', f"terminal_{Terminal._next_id}")

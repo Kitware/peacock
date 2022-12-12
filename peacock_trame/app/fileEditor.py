@@ -1,21 +1,15 @@
-# existing backend imports
-from .core.input.InputTree import InputTree
-from .core.input.ExecutableInfo import ExecutableInfo
-from .core.common import ExeLauncher
-
+import os
+import sys
 from pyaml import yaml
 from bisect import insort
-import os
 import asyncio
 import difflib
 
 from trame.widgets import vuetify, vtk, html, simput
-from trame_simput import get_simput_manager
 from trame_simput.core.mapping import ProxyObjectAdapter, ObjectFactory
 
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
-    vtkPolyDataMapper,
     vtkRenderer,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
@@ -29,6 +23,13 @@ from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
 import vtkmodules.vtkRenderingOpenGL2  # noqa
 
 from peacock_trame.widgets import peacock
+
+# add moose/python to sys path
+moose_dir = os.environ.get("MOOSE_DIR", None)
+sys.path.append(os.path.join(moose_dir, 'python'))
+from .core.input.InputTree import InputTree  # noqa
+from .core.input.ExecutableInfo import ExecutableInfo  # noqa
+from .core.common import ExeLauncher  # noqa
 
 
 class InputFileEditor:
@@ -155,7 +156,7 @@ class InputFileEditor:
         # sort params so that:
         #  - required params are first
         #  - everything else is alphabetical
-        params_dict = dict(sorted(params_dict.items(), key=lambda kv: (kv[1]['required'] == False, kv[0])))
+        params_dict = dict(sorted(params_dict.items(), key=lambda kv: (not kv[1]['required'], kv[0])))
 
         self.simput_types.append(simput_type)
         yaml_str = yaml.dump({simput_type: params_dict}, sort_keys=False)
@@ -186,7 +187,7 @@ class InputFileEditor:
             self.add_to_simput_model(type_info)
 
         proxy_id = block_info.path + '_type_' + simput_type
-        simput_entry = self.pxm.create(simput_type, existing_obj=block_info, proxy_id=proxy_id)
+        self.pxm.create(simput_type, existing_obj=block_info, proxy_id=proxy_id)
 
         # --- add to vuetify tree ---
         block_entry = {
@@ -357,7 +358,7 @@ class InputFileEditor:
         state.active_types = list(active_block.types.keys())
         state.active_type = active_block.blockType()
 
-    def on_active_type(self, active_type, old_type,**kwargs):
+    def on_active_type(self, active_type, old_type, **kwargs):
         state = self._server.state
         pxm = self.pxm
 
@@ -416,7 +417,6 @@ class InputFileEditor:
         # change proxy id
         pxm = self.pxm
         new_proxy_id = block_info.path + '_type_' + simput_type
-        proxy = pxm.get(active_id)
         pxm.create(simput_type, existing_obj=block_info, proxy_id=new_proxy_id)
         pxm.delete(active_id)
         state.active_id = new_proxy_id
@@ -503,7 +503,6 @@ class InputFileEditor:
 
     def get_ui(self):
         # return ui for input file editor
-        ctrl = self._server.controller
         input_ui = vuetify.VCol(
             classes="fill-height flex-nowrap d-flex ma-0 pa-0",
             style="position: relative;"
@@ -783,6 +782,7 @@ class InputFileEditor:
         mapper.SetBlockVisibility(flat_idx, 1)
         mapper.SetBlockColor(flat_idx, [1, 0, 0])
 
+
 class BlockFactory(ObjectFactory):
     def __init__(self):
         self._block = None
@@ -795,6 +795,7 @@ class BlockFactory(ObjectFactory):
         self._block = None
 
         return obj
+
 
 class BlockAdapter(ProxyObjectAdapter):
 

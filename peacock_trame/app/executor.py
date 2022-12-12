@@ -44,4 +44,3 @@ class Executor():
             with html.Div(classes="pa-2", style="flex: 1 1 0px; width: 100%;"):
                 term = peacock.Terminal()
                 ctrl.write_to_terminal = term.write
-

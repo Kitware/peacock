@@ -1,13 +1,14 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
-#*
-#* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-#*
-#* Licensed under LGPL 2.1, please see LICENSE for details
-#* https://www.gnu.org/licenses/lgpl-2.1.html
+# * This file is part of the MOOSE framework
+# * https://www.mooseframework.org
+# *
+# * All rights reserved, see COPYRIGHT for full restrictions
+# * https://github.com/idaholab/moose/blob/master/COPYRIGHT
+# *
+# * Licensed under LGPL 2.1, please see LICENSE for details
+# * https://www.gnu.org/licenses/lgpl-2.1.html
 
 import copy
+
 
 class ParameterInfo(object):
     """
@@ -82,20 +83,21 @@ class ParameterInfo(object):
         Return:
             bool
         """
-        return ( self.isVectorType() or
-            self.user_added or
-            ("basic_string" in self.cpp_type and self.name == "value") or
-            ("std::string" in self.cpp_type and self.name == "value") or
-            self.cpp_type == "FunctionExpression" or
-                (
-                    type(self._value) is str and (
-                        ' ' in self._value or
-                        ';' in self._value or
-                        '=' in self._value or
-                        '\n' in self._value
-                    )
+        return (
+            self.isVectorType()
+            or self.user_added
+            or ("basic_string" in self.cpp_type and self.name == "value")
+            or ("std::string" in self.cpp_type and self.name == "value")
+            or self.cpp_type == "FunctionExpression"
+            or (
+                type(self._value) is str and (
+                    ' ' in self._value
+                    or ';' in self._value
+                    or '=' in self._value
+                    or '\n' in self._value
                 )
             )
+        )
 
     def isVectorType(self):
         """
@@ -148,7 +150,7 @@ class ParameterInfo(object):
         return self._value
 
     def _parse(self, value):
-        if value == '' or value == None:
+        if value == '' or value is None:
             return ''
 
         basic_type = self.basic_type
@@ -177,12 +179,12 @@ class ParameterInfo(object):
         return self._value != self.default or self.comments
 
     def dump(self, o, indent=0, sep='  '):
-        o.write("%sName: %s\n" % (indent*sep, self.name))
-        o.write("%sValue: %s\n" % (indent*sep, self._value))
-        o.write("%sDefault: %s\n" % (indent*sep, self.default))
-        o.write("%sUser added: %s\n" % (indent*sep, self.user_added))
-        o.write("%sRequired: %s\n" % (indent*sep, self.required))
-        o.write("%sCpp_type: %s\n" % (indent*sep, self.cpp_type))
-        o.write("%sGroup: %s\n" % (indent*sep, self.group_name))
-        o.write("%sDescription: %s\n" % (indent*sep, self.description))
-        o.write("%sComments: %s\n" % (indent*sep, self.comments))
+        o.write("%sName: %s\n" % (indent * sep, self.name))
+        o.write("%sValue: %s\n" % (indent * sep, self._value))
+        o.write("%sDefault: %s\n" % (indent * sep, self.default))
+        o.write("%sUser added: %s\n" % (indent * sep, self.user_added))
+        o.write("%sRequired: %s\n" % (indent * sep, self.required))
+        o.write("%sCpp_type: %s\n" % (indent * sep, self.cpp_type))
+        o.write("%sGroup: %s\n" % (indent * sep, self.group_name))
+        o.write("%sDescription: %s\n" % (indent * sep, self.description))
+        o.write("%sComments: %s\n" % (indent * sep, self.comments))

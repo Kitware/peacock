@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
-#*
-#* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-#*
-#* Licensed under LGPL 2.1, please see LICENSE for details
-#* https://www.gnu.org/licenses/lgpl-2.1.html
+# * This file is part of the MOOSE framework
+# * https://www.mooseframework.org
+# *
+# * All rights reserved, see COPYRIGHT for full restrictions
+# * https://github.com/idaholab/moose/blob/master/COPYRIGHT
+# *
+# * Licensed under LGPL 2.1, please see LICENSE for details
+# * https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
 try:
@@ -18,6 +18,7 @@ from .JsonData import JsonData
 from .BlockInfo import BlockInfo
 from .ParameterInfo import ParameterInfo
 
+
 class ExecutableInfo(object):
     """
     Holds the Json of an executable.
@@ -25,6 +26,7 @@ class ExecutableInfo(object):
     SETTINGS_KEY = "ExecutableInfo"
     SETTINGS_KEY_TEST_OBJS = "ExecutableWithTestObjectsInfo"
     CACHE_VERSION = 4
+
     def __init__(self, **kwds):
         super(ExecutableInfo, self).__init__(**kwds)
         self.json_data = None
@@ -40,13 +42,13 @@ class ExecutableInfo(object):
         if not new_path:
             return
 
-        setting_key = self.SETTINGS_KEY
+        # setting_key = self.SETTINGS_KEY
         extra_args = []
         if use_test_objects:
-            setting_key = self.SETTINGS_KEY_TEST_OBJS
+            # setting_key = self.SETTINGS_KEY_TEST_OBJS
             extra_args = ["--allow-test-objects"]
 
-        ### all file-cache operations disabled for now ###
+        # --- all file-cache operations disabled for now ---
         # fc = FileCache(setting_key, new_path, self.CACHE_VERSION)
         # if fc.path == self.path:
         #     # If we are setting the path again, we need to make sure the executable itself hasn't changed
@@ -80,12 +82,12 @@ class ExecutableInfo(object):
         Returns:
             bool: Whether the executable has valid json
         """
-        return self.path != None and self.json_data != None
+        return self.path is not None and self.json_data is not None
 
-    @staticmethod
-    def clearCache():
-        FileCache.clearAll(ExecutableInfo.SETTINGS_KEY)
-        FileCache.clearAll(ExecutableInfo.SETTINGS_KEY_TEST_OBJS)
+    # @staticmethod
+    # def clearCache():
+    #     FileCache.clearAll(ExecutableInfo.SETTINGS_KEY)
+    #     FileCache.clearAll(ExecutableInfo.SETTINGS_KEY_TEST_OBJS)
 
     def toPickle(self):
         return {"json_data": self.json_data.toPickle(),
@@ -184,9 +186,9 @@ class ExecutableInfo(object):
             star = "star"
             if not entry.star:
                 star = "not star"
-            output.write("%s%s: %s: %s\n" % (prefix*level, entry.path, hard, star))
+            output.write("%s%s: %s: %s\n" % (prefix * level, entry.path, hard, star))
             for c in entry.children_list:
-                self._dumpNode(output, entry.children[c], level+1, prefix, only_hard=only_hard)
+                self._dumpNode(output, entry.children[c], level + 1, prefix, only_hard=only_hard)
 
     def dumpDefaultTree(self, hard_only=False):
         output = StringIO()
@@ -195,6 +197,7 @@ class ExecutableInfo(object):
                 continue
             self._dumpNode(output, self.path_map[c], 0, only_hard=hard_only)
         return output.getvalue()
+
 
 if __name__ == '__main__':
     import sys

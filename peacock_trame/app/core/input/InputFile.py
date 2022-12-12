@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
-#*
-#* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-#*
-#* Licensed under LGPL 2.1, please see LICENSE for details
-#* https://www.gnu.org/licenses/lgpl-2.1.html
+# * This file is part of the MOOSE framework
+# * https://www.mooseframework.org
+# *
+# * All rights reserved, see COPYRIGHT for full restrictions
+# * https://github.com/idaholab/moose/blob/master/COPYRIGHT
+# *
+# * Licensed under LGPL 2.1, please see LICENSE for details
+# * https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
 import mooseutils
@@ -113,6 +113,7 @@ class InputFile(object):
             msg = "Failed to parse input file %s:\n%s\n" % (filename, e)
             mooseutils.mooseWarning(msg)
             raise e
+
 
 if __name__ == '__main__':
     import sys

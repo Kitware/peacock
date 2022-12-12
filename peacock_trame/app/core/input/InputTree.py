@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
-#*
-#* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-#*
-#* Licensed under LGPL 2.1, please see LICENSE for details
-#* https://www.gnu.org/licenses/lgpl-2.1.html
+# * This file is part of the MOOSE framework
+# * https://www.mooseframework.org
+# *
+# * All rights reserved, see COPYRIGHT for full restrictions
+# * https://github.com/idaholab/moose/blob/master/COPYRIGHT
+# *
+# * Licensed under LGPL 2.1, please see LICENSE for details
+# * https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
 from pyhit import hit
 import mooseutils
 from .InputFile import InputFile
 from . import InputTreeWriter
+
 
 class InputTree(object):
     """
@@ -327,6 +328,7 @@ class InputTree(object):
             mooseutils.mooseWarning("Caught exception: %s" % e)
             return True
 
+
 if __name__ == '__main__':
     import sys
     from ExecutableInfo import ExecutableInfo
@@ -339,5 +341,5 @@ if __name__ == '__main__':
     input_file_path = sys.argv[2]
     input_tree = InputTree(exe_info)
     input_tree.setInputFile(input_file_path)
-    #print(input_tree.dump())
+    # print(input_tree.dump())
     print(input_tree.getInputFileString())

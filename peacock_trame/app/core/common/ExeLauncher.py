@@ -1,16 +1,17 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
-#*
-#* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-#*
-#* Licensed under LGPL 2.1, please see LICENSE for details
-#* https://www.gnu.org/licenses/lgpl-2.1.html
+# * This file is part of the MOOSE framework
+# * https://www.mooseframework.org
+# *
+# * All rights reserved, see COPYRIGHT for full restrictions
+# * https://github.com/idaholab/moose/blob/master/COPYRIGHT
+# *
+# * Licensed under LGPL 2.1, please see LICENSE for details
+# * https://www.gnu.org/licenses/lgpl-2.1.html
 
 from .PeacockException import FileExistsException, BadExecutableException
 import mooseutils
 import subprocess
 import os
+
 
 def runExe(app_path, args, print_errors=True):
     """
@@ -44,9 +45,9 @@ def runExe(app_path, args, print_errors=True):
     stdout_data = data[0].decode("utf-8")
     if proc.returncode != 0:
         msg = "'%s' exited with non zero status %s.\n\n"\
-                "Please make sure your application is built and able to execute the given arguments.\n"\
-                "Working dir: %s\n"\
-                "Output: %s" % (' '.join(popen_args), proc.returncode, os.getcwd(), stdout_data)
+            "Please make sure your application is built and able to execute the given arguments.\n"\
+            "Working dir: %s\n"\
+            "Output: %s" % (' '.join(popen_args), proc.returncode, os.getcwd(), stdout_data)
         if print_errors:
             mooseutils.mooseWarning(msg)
         raise BadExecutableException(msg)

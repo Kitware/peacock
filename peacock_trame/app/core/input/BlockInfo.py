@@ -1,11 +1,11 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
-#*
-#* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-#*
-#* Licensed under LGPL 2.1, please see LICENSE for details
-#* https://www.gnu.org/licenses/lgpl-2.1.html
+# * This file is part of the MOOSE framework
+# * https://www.mooseframework.org
+# *
+# * All rights reserved, see COPYRIGHT for full restrictions
+# * https://github.com/idaholab/moose/blob/master/COPYRIGHT
+# *
+# * Licensed under LGPL 2.1, please see LICENSE for details
+# * https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
 import copy
@@ -15,6 +15,7 @@ except ImportError:
     from io import StringIO
 import mooseutils
 from .ParameterInfo import ParameterInfo
+
 
 class BlockInfo(object):
     """
@@ -367,7 +368,7 @@ class BlockInfo(object):
             str: The dump of this block.
         """
         o = StringIO()
-        i_str = sep*indent
+        i_str = sep * indent
         o.write("%sPath: %s\n" % (i_str, self.path))
         indent += 1
         if self.parent:
@@ -381,19 +382,19 @@ class BlockInfo(object):
         o.write("%sDescription: %s\n" % (i_str, self.description))
         o.write("%sParameters:\n" % i_str)
         for p in self.parameters.values():
-            o.write("%s%s:\n" % ((indent+1)*sep, p.name))
-            p.dump(o, indent+2, sep)
+            o.write("%s%s:\n" % ((indent + 1) * sep, p.name))
+            p.dump(o, indent + 2, sep)
 
-        o.write("%sChildren:\n" % (indent*sep))
+        o.write("%sChildren:\n" % (indent * sep))
         for name in self.children_list:
             c = self.children[name]
-            o.write(c.dump(indent+1, sep))
-        o.write("%sStar node:\n" % (indent*sep))
+            o.write(c.dump(indent + 1, sep))
+        o.write("%sStar node:\n" % (indent * sep))
         if self.star_node:
-            o.write(self.star_node.dump(indent+1, sep))
-        o.write("%sType nodes:\n" % (indent*sep))
+            o.write(self.star_node.dump(indent + 1, sep))
+        o.write("%sType nodes:\n" % (indent * sep))
         for t in self.types.values():
-            o.write(t.dump(indent+1, sep))
+            o.write(t.dump(indent + 1, sep))
         return o.getvalue()
 
     def getParamNames(self):
@@ -428,8 +429,8 @@ class BlockInfo(object):
         Return:
             list: The elements in "complete" with elements in "first" first.
         """
-        l = first[:]
+        ol = first[:]
         for x in complete:
-            if x not in l:
-                l.append(x)
-        return l
+            if x not in ol:
+                ol.append(x)
+        return ol

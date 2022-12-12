@@ -1,10 +1,4 @@
-# add moose/python to sys path
-import sys
 import os
-moose_dir = os.environ.get("MOOSE_DIR", None)
-sys.path.append(os.path.join(moose_dir, 'python'))
-
-import subprocess
 
 from trame.app import get_server, dev
 from trame.ui.vuetify import VAppLayout
@@ -12,7 +6,6 @@ from trame.widgets import vuetify, html, simput
 from trame_simput import get_simput_manager
 from trame.assets.local import LocalFileManager
 
-import peacock_trame
 from peacock_trame import module
 from .core.input.LanguageServer import LanguageServerManager
 
@@ -25,10 +18,12 @@ from .executor import (
     Executor,
 )
 
+
 def _reload():
     server = get_server()
     dev.reload(InputFileEditor)
     initialize(server)
+
 
 def initialize(server):
     state, ctrl = server.state, server.controller
@@ -72,7 +67,7 @@ def initialize(server):
                 classes="flex-grow-0",
                 color='grey',
             ):
-                for tab_label in ['Input File', 'Execute',]:
+                for tab_label in ['Input File', 'Execute']:
                     vuetify.VTab(tab_label)
 
         # input file editor
