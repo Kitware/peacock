@@ -24,7 +24,7 @@ from vtkmodules.vtkRenderingCore import (
 from vtkmodules.vtkFiltersExtraction import vtkExtractBlock
 from vtkmodules.vtkRenderingOpenGL2 import vtkCompositePolyDataMapper2
 from vtkmodules.vtkIOExodus import vtkExodusIIReader
-from vtkmodules.vtkFiltersGeometry import vtkGeometryFilter
+from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
 import vtkmodules.vtkRenderingOpenGL2  # noqa
 
@@ -715,7 +715,7 @@ class InputFileEditor:
             extractor.SetInputConnection(reader.GetOutputPort())
             for idx in mb_idxs:
                 extractor.AddIndex(idx)
-            geometry = vtkGeometryFilter()
+            geometry = vtkDataSetSurfaceFilter()
             geometry.SetInputConnection(extractor.GetOutputPort())
             mapper = vtkCompositePolyDataMapper2()
             mapper.SetInputConnection(geometry.GetOutputPort())
