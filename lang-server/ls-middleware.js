@@ -4,20 +4,16 @@ const lsp = require('vscode-languageserver')
 
 const WebSocket = require('ws');
 
-const wss = new WebSocket.Server({ port: 8989 });
-
 const args = process.argv
-if (args.length < 3) {
-  console.log("Please provide path to server exe")
+if (args.length < 4) {
+  console.log("Usage: npm run start server_path port")
   throw new Error()
 }
 
 const server_path = process.argv[2]
+const port = process.argv[3]
 
-process.on('disconnect', function() {
-  console.log('exiting')
-  process.exit();
-})
+const wss = new WebSocket.Server({ port: port });
 
 function launch (socket) {
   const reader = new rpc.WebSocketMessageReader(socket)

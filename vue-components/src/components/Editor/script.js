@@ -19,6 +19,8 @@ import VsCodeDarkTheme from './lib/vs-dark-plus-theme';
 import moose_config from './assets/moose_config.json'
 import moose_grammar from './assets/moose_grammar.json'
 
+import {WSLinkWebSocket} from './lib/wslinkWebSocket'
+
 window.setImmediate = window.setTimeout;
 
 export default {
@@ -59,7 +61,7 @@ export default {
       });
     },
     connectToLangServer: function () {
-      const webSocket = new WebSocket("ws://127.0.0.1:8989");
+      const webSocket = new WSLinkWebSocket(this.trame);
 
       listen({
         webSocket: webSocket,
@@ -77,6 +79,7 @@ export default {
 
         },
       });
+      webSocket.connectToLangServer();
     },
     async loadVSCodeOnigurumWASM() {
       const response = await fetch('__peacock_trame/onig.wasm');
@@ -162,4 +165,7 @@ export default {
       });
     })
   },
+  inject: [
+    "trame",
+  ]
 };

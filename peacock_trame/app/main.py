@@ -14,6 +14,7 @@ from trame.assets.local import LocalFileManager
 
 import peacock_trame
 from peacock_trame import module
+from .core.input.LanguageServer import LanguageServerManager
 
 from .fileEditor import (
     InputFileEditor,
@@ -28,7 +29,6 @@ def _reload():
     server = get_server()
     dev.reload(InputFileEditor)
     initialize(server)
-
 
 def initialize(server):
     state, ctrl = server.state, server.controller
@@ -53,10 +53,7 @@ def initialize(server):
     ctrl.simput_reload_data = simput_widget.reload_data
 
     if state.lang_server_path:
-        # start language server
-        # TODO: kill child process after unexpected exit
-        lang_server_dir = os.path.join(os.path.dirname(peacock_trame.__file__), '..', 'lang-server')
-        lang_server_process = subprocess.Popen(["npm", "run", "--prefix", lang_server_dir, "start", state.lang_server_path])
+        LanguageServerManager(server)
 
     with VAppLayout(server) as layout:
 
