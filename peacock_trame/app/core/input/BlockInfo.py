@@ -434,3 +434,31 @@ class BlockInfo(object):
             if x not in ol:
                 ol.append(x)
         return ol
+
+    def __eq__(self, otherBlock):
+
+        if not isinstance(otherBlock, BlockInfo):
+            return False
+
+        typeBlock = self.getTypeBlock()
+        if typeBlock:
+            params = typeBlock.getParamNames()
+        else:
+            params = []
+        params += self.getParamNames()
+
+        otherTypeBlock = otherBlock.getTypeBlock()
+        if otherTypeBlock:
+            other_params = typeBlock.getParamNames()
+        else:
+            other_params = []
+        other_params += otherBlock.getParamNames()
+
+        if params != other_params:
+            return False
+
+        for param in params:
+            if self.paramValue(param) != otherBlock.paramValue(param):
+                return False
+
+        return True

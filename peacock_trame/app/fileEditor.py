@@ -24,6 +24,7 @@ import vtkmodules.vtkRenderingOpenGL2  # noqa
 
 from peacock_trame.widgets import peacock
 
+from .core.common.PeacockException import BadExecutableException
 # add moose/python to sys path
 moose_dir = os.environ.get("MOOSE_DIR", None)
 sys.path.append(os.path.join(moose_dir, 'python'))
@@ -73,6 +74,8 @@ class InputFileEditor:
         self.pxm = simput_manager.proxymanager
         self.file_str_task = None
         self.updating_from_editor = False
+        self.vtkRenderWindow = None
+        self.vtkRenderer = None
         self.set_input_file(file_name=state.input_file)
 
         self.pxm.on(self.on_proxy_change)
@@ -94,12 +97,18 @@ class InputFileEditor:
         state.flush()
         self.file_str_task = None
 
-    def on_proxy_change(self, topic, id=None, **kwargs):
+    def on_proxy_change(self, topic, ids=None, **kwargs):
         if not self.updating_from_editor:  # only update editor when change comes from simput
             if topic == 'changed':
                 # updating editor sometimes de-focuses parameter input field
                 # adding delay gives time for user to finish input
                 self.update_editor(delay=0.5)
+
+            # update render window if mesh updated from simput
+            for proxy_id in ids:
+                if '/Mesh_type' in proxy_id:
+                    self.create_vtk_render_window()
+                    break
 
     def set_input_file(self, file_name=None, file_str=None, update_file_str=True):
         # sets the input file of the InputTree object and populates simput/ui
@@ -469,6 +478,7 @@ class InputFileEditor:
         # repopulate entire tree
         # this is not optimal but it will work for now
         self.updating_from_editor = True
+        old_mesh = self.tree.getBlockInfo('/Mesh')
         if self.set_input_file(file_str=file_str, update_file_str=False):
             state = self._server.state
             path, active_type_path = state.active_id.split('_type_')
@@ -482,10 +492,15 @@ class InputFileEditor:
             else:
                 # check if active type changed
                 new_type_block = active_block.getTypeBlock()
-                if new_type_block.name != state.active_type:
+                if new_type_block is not None and new_type_block.name != state.active_type:
                     state.active_type = new_type_block.name
                     state.active_id = path + '_type_' + new_type_block.path
                     state.active_ids = [state.active_id]
+
+            # update vtk window if mesh changed
+            new_mesh = self.tree.getBlockInfo('/Mesh')
+            if old_mesh != new_mesh:
+                self.create_vtk_render_window()
             self._server.controller.simput_reload_data()
         self.updating_from_editor = False
 
@@ -503,6 +518,9 @@ class InputFileEditor:
 
     def get_ui(self):
         # return ui for input file editor
+
+        ctrl = self._server.controller
+
         input_ui = vuetify.VCol(
             classes="fill-height flex-nowrap d-flex ma-0 pa-0",
             style="position: relative;"
@@ -573,9 +591,10 @@ class InputFileEditor:
                     v_if=("show_mesh",),
                     style="position: relative; width: 100%; height: 50vh; border-radius: 5px; overflow: hidden; margin-bottom: 10px;",
                 ):
-                    vtk.VtkRemoteView(
+                    vtkView = vtk.VtkRemoteView(
                         self.create_vtk_render_window(),
                     )
+                    ctrl.update_vtk_view = vtkView.update
 
                     # block, boundary, nodeset selector
                     with html.Div(
@@ -610,6 +629,11 @@ class InputFileEditor:
                             hide_details=True,
                             change=(self.on_active_nodesets, "[$event]"),
                         )
+
+                    html.Div(
+                        style="position: absolute; height: 100%; width: 100%; top: 0px; left: 0px; backdrop-filter: blur(5px);",
+                        v_show=("mesh_invalid", False)
+                    )
 
                 with vuetify.VCard(style="width: 100%; flex-grow: 1;"):
                     with vuetify.VCardTitle():
@@ -655,12 +679,24 @@ class InputFileEditor:
         return input_ui
 
     def create_vtk_render_window(self):
-        state = self._server.state
+        server = self._server
+        state, ctrl = server.state, server.controller
         input_file = state.input_file
         exe_path = state.executable
-        tmp_mesh_file = f"{os.path.splitext(input_file)[0]}_tmp_mesh.e"
 
-        ExeLauncher.runExe(exe_path, ['-i', input_file, '--mesh-only', tmp_mesh_file])
+        # save temp input file to run executable with
+        tmp_input_file = f"{os.path.splitext(input_file)[0]}_tmp.i"
+        with open(tmp_input_file, 'w+') as f:
+            f.write(self.tree.getInputFileString())
+
+        # run executable to get mesh
+        tmp_mesh_file = f"{os.path.splitext(input_file)[0]}_tmp_mesh.e"
+        try:
+            ExeLauncher.runExe(exe_path, ['-i', tmp_input_file, '--mesh-only', tmp_mesh_file])
+        except BadExecutableException:
+            print("'--mesh-only' executable run failed")
+            state.mesh_invalid = True
+            return
 
         reader = vtkExodusIIReader()
         reader.SetFileName(tmp_mesh_file)
@@ -751,27 +787,39 @@ class InputFileEditor:
         renderer.AddActor(boundary_actor)
         renderer.AddActor(nodeset_actor)
 
-        renderWindow = vtkRenderWindow()
-        renderWindow.AddRenderer(renderer)
-        renderWindow.SetOffScreenRendering(1)
+        if self.vtkRenderWindow is None:
+            # no mesh rendered yet
+            renderWindow = vtkRenderWindow()
+            renderWindow.SetOffScreenRendering(1)
+            interactor = vtkRenderWindowInteractor()
+            interactor.SetRenderWindow(renderWindow)
+            interactor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
+            self.vtkRenderWindow = renderWindow
+        else:
+            # mesh rendered already
+            renderWindow = self.vtkRenderWindow
+            renderWindow.RemoveRenderer(self.vtkRenderer)
+            ctrl.update_vtk_view()
 
-        interactor = vtkRenderWindowInteractor()
-        interactor.SetRenderWindow(renderWindow)
-        interactor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
+        renderWindow.AddRenderer(renderer)
+        renderWindow.Render()
 
         self.block_mapper = block_mapper
         self.boundary_mapper = boundary_mapper
         self.nodeset_mapper = nodeset_mapper
-        self.vtkRenderWindow = renderWindow
+        self.vtkRenderer = renderer
         self.blocks = blocks
         self.boundaries = boundaries
         self.nodesets = nodesets
 
         state.active_blocks = blocks
+        state.active_boundaries = []
+        state.active_nodesets = []
         state.mesh_blocks = blocks
         state.mesh_boundaries = boundaries
         state.mesh_nodesets = nodesets
 
+        state.mesh_invalid = False
         return renderWindow
 
     def show_boundary(self, name):
