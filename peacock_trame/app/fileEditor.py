@@ -4,6 +4,7 @@ from pyaml import yaml
 from bisect import insort
 import asyncio
 import difflib
+import random
 
 from trame.widgets import vuetify, vtk, html, simput
 from trame_simput.core.mapping import ProxyObjectAdapter, ObjectFactory
@@ -430,22 +431,29 @@ class InputFileEditor:
         pxm.delete(active_id)
         state.active_id = new_proxy_id
 
-    def on_active_blocks(self, active_blocks, **kwargs):
-        for idx, block in enumerate(self.blocks):
-            # flat index is idx + 1 because parent node has flat idx of 0
-            self.block_mapper.SetBlockVisibility(idx + 1, block in active_blocks)
+    def toggle_mesh_viz(self, viz_type, viz_id):
+        state = self._server.state
+        info = state[viz_type][viz_id]
+        mapper = self.vtkMappers[viz_type]
+
+        info['visible'] = not info['visible']
+        state.dirty(viz_type)
+
+        mapper.SetBlockVisibility(info['index'], info['visible'])
         self.vtkRenderWindow.Render()
 
-    def on_active_boundaries(self, active_boundaries, **kwargs):
-        for idx, boundary in enumerate(self.boundaries):
-            # flat index is idx + 1 because parent node has flat idx of 0
-            self.boundary_mapper.SetBlockVisibility(idx + 1, boundary in active_boundaries)
-        self.vtkRenderWindow.Render()
+    def on_color_change(self, rgb_obj, viz_type, viz_id):
+        state = self._server.state
+        info = state[viz_type][viz_id]
 
-    def on_active_nodesets(self, active_nodesets, **kwargs):
-        for idx, nodeset in enumerate(self.nodesets):
-            # flat index is idx + 1 because parent node has flat idx of 0
-            self.nodeset_mapper.SetBlockVisibility(idx + 1, nodeset in active_nodesets)
+        rgb = rgb_obj.values()
+        info['html_color'] = 'rgb' + str(tuple(rgb))
+        info['rgb'] = rgb_obj
+        state.dirty(viz_type)
+
+        vtk_color = list(map(lambda x: x / 255, rgb))
+        mapper = self.vtkMappers[viz_type]
+        mapper.SetBlockColor(info['index'], vtk_color)
         self.vtkRenderWindow.Render()
 
     def on_block_to_add(self, block_to_add, **kwargs):
@@ -521,12 +529,10 @@ class InputFileEditor:
 
         ctrl = self._server.controller
 
-        input_ui = vuetify.VCol(
+        with vuetify.VCol(
             classes="fill-height flex-nowrap d-flex ma-0 pa-0",
             style="position: relative;"
-        )
-
-        with input_ui:
+        ) as input_ui:
 
             with html.Div(classes="fill-height d-flex flex-column"):
                 with vuetify.VTreeview(
@@ -596,39 +602,65 @@ class InputFileEditor:
                     )
                     ctrl.update_vtk_view = vtkView.update
 
-                    # block, boundary, nodeset selector
                     with html.Div(
-                        style="position: absolute; bottom: 10px; left: 10px; display: flex;"
+                        style="position: absolute; bottom: 10px; left: 10px; display: flex; justify-content: space-between;",
                     ):
-                        vuetify.VCombobox(
-                            label="Blocks",
-                            v_model=("active_blocks",),
-                            items=("mesh_blocks",),
-                            multiple=True,
-                            dense=True,
-                            hide_details=True,
-                            change=(self.on_active_blocks, "[$event]"),
-                            style="padding-right: 5px;",
-                        )
-                        vuetify.VCombobox(
-                            label="Boundaries",
-                            v_model=("active_boundaries", []),
-                            items=("mesh_boundaries",),
-                            multiple=True,
-                            dense=True,
-                            hide_details=True,
-                            change=(self.on_active_boundaries, "[$event]"),
-                            style="padding-right: 5px;",
-                        )
-                        vuetify.VCombobox(
-                            label="Nodesets",
-                            v_model=("active_nodesets", []),
-                            items=("mesh_nodesets",),
-                            multiple=True,
-                            dense=True,
-                            hide_details=True,
-                            change=(self.on_active_nodesets, "[$event]"),
-                        )
+                        # block, boundary, nodeset selector
+                        def create_toggler(label, array_name):
+                            with html.Div(
+                                style="display: flex; flex-direction: column;",
+                            ) as container:
+                                html.H3(
+                                    label,
+                                    style="text-align: center;",
+                                )
+                                with html.Div(
+                                    style="position: relative; display: flex; align-items: center; justify-content: space-between;",
+                                    v_for=("(value, key) in " + array_name,),
+                                ):
+                                    with vuetify.VBtn(
+                                        icon=True,
+                                        click=(self.toggle_mesh_viz, "['" + array_name + "', key]"),
+                                    ):
+                                        vuetify.VIcon(
+                                            'mdi-eye-outline',
+                                            v_if="value.visible",
+                                        )
+                                        vuetify.VIcon(
+                                            'mdi-eye-off-outline',
+                                            v_if="!value.visible",
+                                        )
+
+                                    html.H3("{{key}}")
+
+                                    with vuetify.VMenu(
+                                        top=True,
+                                        offset_x=10,
+                                        offset_y=10,
+                                        close_on_content_click=False,
+                                    ):
+                                        with vuetify.Template(v_slot_activator="{ on }",):
+                                            with vuetify.VBtn(
+                                                icon=True,
+                                                v_on="on",
+                                            ):
+                                                html.Div(
+                                                    style=("{width: '10px', height: '10px', background: value.html_color}",),
+                                                )
+                                        vuetify.VColorPicker(
+                                            hide_canvas=True,
+                                            hide_sliders=True,
+                                            hide_inputs=True,
+                                            hide_mode_switch=True,
+                                            show_swatches=True,
+                                            v_model=("value.rgb",),
+                                            input=(self.on_color_change, "[$event, '" + array_name + "', key]"),
+                                        )
+
+                            return container
+                        create_toggler("Blocks", "blocks")
+                        create_toggler("Boundaries", "boundaries")
+                        create_toggler("Nodesets", "nodesets")
 
                     html.Div(
                         style="position: absolute; height: 100%; width: 100%; top: 0px; left: 0px; backdrop-filter: blur(5px);",
@@ -744,7 +776,7 @@ class InputFileEditor:
                     nodesets.append(name)
                     nodeset_idxs.append(index)
 
-        def create_vtk_pipeline(mb_idxs):
+        def create_vtk_pipeline(set_list, mb_idxs, visible, rgb):
             # extracts group of blocks from exodus tree and creates rendering pipeline
             extractor = vtkExtractBlock()
             extractor.SetInputConnection(reader.GetOutputPort())
@@ -758,26 +790,31 @@ class InputFileEditor:
             mapper.SetCompositeDataDisplayAttributes(cdsa)
             actor = vtkActor()
             actor.SetMapper(mapper)
+            mapper.Update()
 
-            return actor, mapper
+            # store info in dictionary
+            info = {}
+            for idx, set_id in enumerate(set_list):
+                info[str(set_id)] = {
+                    'visible': visible,
+                    'rgb': dict(zip('rgb', rgb)),
+                    'html_color': 'rgb' + str(tuple(rgb)),
+                    'index': idx + 1,
+                }
 
-        block_actor, block_mapper = create_vtk_pipeline(block_idxs)
-        boundary_actor, boundary_mapper = create_vtk_pipeline(boundary_idxs)
-        nodeset_actor, nodeset_mapper = create_vtk_pipeline(nodeset_idxs)
+                mapper.SetBlockVisibility(idx + 1, visible)
+                vtk_color = list(map(lambda x: x / 255, rgb))
+                mapper.SetBlockColor(idx + 1, vtk_color)
+
+            return actor, mapper, info
+        block_actor, block_mapper, block_info = create_vtk_pipeline(blocks, block_idxs, True, [255, 255, 255])
+        boundary_actor, boundary_mapper, boundary_info = create_vtk_pipeline(boundaries, boundary_idxs, False, [244, 67, 54])
+        nodeset_actor, nodeset_mapper, nodeset_info = create_vtk_pipeline(nodesets, nodeset_idxs, False, [244, 67, 54])
 
         block_actor.GetProperty().SetRepresentationToWireframe()
         boundary_actor.GetProperty().SetRepresentationToSurface()
         nodeset_actor.GetProperty().SetRepresentationToPoints()
         nodeset_actor.GetProperty().SetPointSize(5)
-
-        # only display blocks to start
-        # not sure why, but un-adjusted flat indexes work here, unlike after rendering
-        for idx in range(len(boundaries)):
-            boundary_mapper.SetBlockVisibility(idx, 0)
-            boundary_mapper.SetBlockColor(idx, [1, 0, 0])
-        for idx in range(len(nodesets)):
-            nodeset_mapper.SetBlockVisibility(idx, 0)
-            nodeset_mapper.SetBlockColor(idx, [1, 0, 0])
 
         renderer = vtkRenderer()
         renderer.SetBackground(0.5, 0.5, 0.5)
@@ -804,31 +841,19 @@ class InputFileEditor:
         renderWindow.AddRenderer(renderer)
         renderWindow.Render()
 
-        self.block_mapper = block_mapper
-        self.boundary_mapper = boundary_mapper
-        self.nodeset_mapper = nodeset_mapper
+        self.vtkMappers = {
+            'blocks': block_mapper,
+            'boundaries': boundary_mapper,
+            'nodesets': nodeset_mapper,
+        }
         self.vtkRenderer = renderer
-        self.blocks = blocks
-        self.boundaries = boundaries
-        self.nodesets = nodesets
 
-        state.active_blocks = blocks
-        state.active_boundaries = []
-        state.active_nodesets = []
-        state.mesh_blocks = blocks
-        state.mesh_boundaries = boundaries
-        state.mesh_nodesets = nodesets
+        state.blocks = block_info
+        state.boundaries = boundary_info
+        state.nodesets = nodeset_info
 
         state.mesh_invalid = False
         return renderWindow
-
-    def show_boundary(self, name):
-        mapper = self.vtkMapper
-
-        flat_idx = self.flat_idxs['Side Sets'][name]
-        mapper.SetBlockOpacity(1, 0.5)
-        mapper.SetBlockVisibility(flat_idx, 1)
-        mapper.SetBlockColor(flat_idx, [1, 0, 0])
 
 
 class BlockFactory(ObjectFactory):
