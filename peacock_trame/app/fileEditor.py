@@ -245,7 +245,6 @@ class InputFileEditor:
 
         return parent_entry
 
-    # TODO: implement this
     def remove_block(self, path):
         block_info = self.tree.getBlockInfo(path)
         parent_info = block_info.parent
@@ -591,12 +590,53 @@ class InputFileEditor:
                         vuetify.VListItem("{{block.name}}", v_for="block in unused_blocks", click="block_to_add = block.path; add_block_open = false;")
 
             with html.Div(
-                style="flex: 1 1 0px; height: 100%; display: flex; flex-direction: column; padding: 5px;",
+                style="position: relative; flex: 1 1 0px; height: 100%; display: flex; flex-direction: column; padding: 5px;",
             ):
+                with html.Div(style="position: absolute; top: 0px; width: 100%; display: flex; justify-content: center; z-index: 2;"):
+                    with vuetify.VHover(
+                        v_slot="{ hover }",
+                        v_if=("!show_mesh",),
+                    ):
+                        with vuetify.VBtn(
+                            click=self.toggle_mesh,
+                            style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 0px 0px 4px 4px;",
+                        ):
+                            with html.Div(style="display: flex; flex-direction: column;"):
+                                vuetify.VIcon(
+                                    'mdi-chevron-down',
+                                    style="height: 15px;"
+                                )
+                                with vuetify.VSlideYTransition():
+                                    vuetify.VIcon(
+                                        'mdi-cube-outline',
+                                        v_if="hover",
+                                        style="padding-top: 15px;"
+                                    )
+
                 with html.Div(
                     v_if=("show_mesh",),
                     style="position: relative; width: 100%; height: 50vh; border-radius: 5px; overflow: hidden; margin-bottom: 10px;",
                 ):
+                    with html.Div(style="position: absolute; bottom: 0px; width: 100%; display: flex; justify-content: center; z-index: 2;"):
+                        with vuetify.VHover(
+                            v_slot="{ hover }",
+                        ):
+                            with vuetify.VBtn(
+                                click=self.toggle_mesh,
+                                style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 4px 4px 0px 0px;",
+                            ):
+                                with html.Div(style="display: flex; flex-direction: column;"):
+                                    with vuetify.VSlideYReverseTransition():
+                                        vuetify.VIcon(
+                                            'mdi-cube-off-outline',
+                                            v_if="hover",
+                                            style="padding-bottom: 5px;"
+                                        )
+                                    vuetify.VIcon(
+                                        'mdi-chevron-up',
+                                        style="height: 15px;"
+                                    )
+
                     vtkView = vtk.VtkRemoteView(
                         self.create_vtk_render_window(),
                     )
@@ -698,15 +738,58 @@ class InputFileEditor:
                             style="overflow: auto; height: 100%;",
                             classes="px-2 py-3",
                         )
-            with html.Div(
-                v_show=("show_file_editor", False),
-                style="flex: 1 1 0px; height: 100%; position: relative;",
+
+            with vuetify.VHover(
+                v_slot="{ hover }",
+                style="position: absolute; top: 25%; right: 0px; z-index: 2;",
+                v_if=("!show_file_editor",),
             ):
-                peacock.Editor(
-                    contents=("file_str", ""),
-                    filepath=("input_file", ""),
-                    change=(self.on_file_str, "[$event]"),
-                )
+                with vuetify.VBtn(
+                    click=self.toggle_editor,
+                    style="min-width: 0px; min-height: 50px; padding: 2px; border-radius: 4px 0px 0px 4px;",
+                ):
+                    with vuetify.VSlideXReverseTransition():
+                        vuetify.VIcon(
+                            'mdi-file-document-edit-outline',
+                            v_if="hover",
+                            style="padding-right: 5px;",
+                        )
+                    vuetify.VIcon(
+                        'mdi-chevron-left',
+                        style="width: 15px;",
+                    )
+
+            with vuetify.VSlideXReverseTransition():
+                with html.Div(
+                    v_show=("show_file_editor", False),
+                    style="flex: 1 1 0px; height: 100%; position: relative;",
+                ):
+                    with vuetify.VHover(
+                        v_slot="{ hover }",
+                        style="position: absolute; top: 25%; left: 0; z-index: 2;",
+                    ):
+                        with vuetify.VBtn(
+                            click=self.toggle_editor,
+                            style="min-width: 0px; min-height: 50px; padding: 2px; background: gray; border-radius: 0px 4px 4px 0px;",
+                        ):
+                            vuetify.VIcon(
+                                'mdi-chevron-right',
+                                color="white",
+                                style="width: 15px;",
+                            )
+                            with vuetify.VSlideXTransition():
+                                vuetify.VIcon(
+                                    'mdi-arrow-collapse-right',
+                                    v_if="hover",
+                                    color="white",
+                                    style="padding-left: 10px;",
+                                )
+
+                    peacock.Editor(
+                        contents=("file_str", ""),
+                        filepath=("input_file", ""),
+                        change=(self.on_file_str, "[$event]"),
+                    )
 
         return input_ui
 

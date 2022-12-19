@@ -63,7 +63,6 @@ def initialize(server):
             )
             with vuetify.VTabs(
                 v_model=("tab_idx", 0),
-                # centered=True,
                 classes="flex-grow-0",
                 color='grey',
             ):
@@ -77,30 +76,6 @@ def initialize(server):
             v_if=("tab_idx == 0",),
             style="position: absolute; top: 10px; right: 10px; display: flex;",
         ):
-            with vuetify.VBtn(
-                click=file_editor.toggle_mesh,
-                icon=True,
-            ):
-                vuetify.VIcon(
-                    'mdi-cube-outline',
-                    v_if=("!show_mesh",),
-                )
-                vuetify.VIcon(
-                    'mdi-cube-off-outline',
-                    v_if=("show_mesh",),
-                )
-            with vuetify.VBtn(
-                click=file_editor.toggle_editor,
-                icon=True,
-            ):
-                vuetify.VIcon(
-                    'mdi-file-document-edit',
-                    v_if=("show_file_editor",),
-                ),
-                vuetify.VIcon(
-                    'mdi-file-document-edit-outline',
-                    v_if=("!show_file_editor",),
-                )
             with vuetify.VBtn(
                 click=file_editor.write_file,
                 icon=True,
