@@ -4,7 +4,6 @@ from pyaml import yaml
 from bisect import insort
 import asyncio
 import difflib
-import random
 
 from trame.widgets import vuetify, vtk, html, simput
 from trame_simput.core.mapping import ProxyObjectAdapter, ObjectFactory
@@ -62,6 +61,7 @@ class InputFileEditor:
         state.show_file_editor = False
         state.block_to_add = None
         state.block_to_remove = None
+        state.bc_boundaries = {}
 
         state.change('active_id')(self.on_active_id)
         state.change('block_to_add')(self.on_block_to_add)
@@ -360,7 +360,46 @@ class InputFileEditor:
         block_path = active_id.split('_type_')[0]
         active_block = self.tree.getBlockInfo(block_path)
 
-        state.show_mesh = active_block.name == 'Mesh' or active_block.parent.name == 'Mesh'
+        state.show_mesh = (
+            active_block.name == 'Mesh'
+            or active_block.parent.name == 'Mesh'
+            or active_block.name == 'BCs'
+            or active_block.parent.name == 'BCs'
+        )
+
+        if active_block.parent.name == 'BCs':
+            state.bc_selected = True
+            boundaries = active_block.paramValue('boundary')
+
+            for block_id, info in state.blocks.items():
+                self.vtkMappers['blocks'].SetBlockVisibility(info['index'], True)
+
+            boundaries_info = {}
+            for boundary_id, info in state.boundaries.items():
+                if boundary_id in boundaries:
+                    self.vtkMappers['boundaries'].SetBlockVisibility(info['index'], True)
+                    boundaries_info[boundary_id] = info.copy()
+                    boundaries_info[boundary_id]['visible'] = True
+                else:
+                    self.vtkMappers['boundaries'].SetBlockVisibility(info['index'], False)
+            state.bc_boundaries = boundaries_info
+
+            for nodeset, info in state.nodesets.items():
+                self.vtkMappers['nodesets'].SetBlockVisibility(info['index'], False)
+
+            self.vtkRenderWindow.Render()
+        else:
+            if state.bc_selected:
+                state.bc_selected = False
+                # reset to user selected values
+                for set_type in ['blocks', 'boundaries', 'nodesets']:
+                    mapper = self.vtkMappers[set_type]
+                    for set_id, info in state[set_type].items():
+                        mapper.SetBlockVisibility(info['index'], info['visible'])
+                        vtk_color = list(map(lambda x: x / 255, info['rgb'].values()))
+                        mapper.SetBlockColor(info['index'], vtk_color)
+
+                self.vtkRenderWindow.Render()
 
         state.active_name = active_block.name
         state.name_editable = active_block.user_added
@@ -432,26 +471,30 @@ class InputFileEditor:
 
     def toggle_mesh_viz(self, viz_type, viz_id):
         state = self._server.state
-        info = state[viz_type][viz_id]
-        mapper = self.vtkMappers[viz_type]
 
+        info = state[viz_type][viz_id]
         info['visible'] = not info['visible']
         state.dirty(viz_type)
 
+        if viz_type == 'bc_boundaries':
+            viz_type = 'boundaries'
+        mapper = self.vtkMappers[viz_type]
         mapper.SetBlockVisibility(info['index'], info['visible'])
         self.vtkRenderWindow.Render()
 
     def on_color_change(self, rgb_obj, viz_type, viz_id):
         state = self._server.state
-        info = state[viz_type][viz_id]
 
+        info = state[viz_type][viz_id]
         rgb = rgb_obj.values()
         info['html_color'] = 'rgb' + str(tuple(rgb))
         info['rgb'] = rgb_obj
         state.dirty(viz_type)
 
-        vtk_color = list(map(lambda x: x / 255, rgb))
+        if viz_type == 'bc_boundaries':
+            viz_type = 'boundaries'
         mapper = self.vtkMappers[viz_type]
+        vtk_color = list(map(lambda x: x / 255, rgb))
         mapper.SetBlockColor(info['index'], vtk_color)
         self.vtkRenderWindow.Render()
 
@@ -646,8 +689,9 @@ class InputFileEditor:
                         style="position: absolute; bottom: 10px; left: 10px; display: flex; justify-content: space-between;",
                     ):
                         # block, boundary, nodeset selector
-                        def create_toggler(label, array_name):
+                        def create_toggler(label, array_name, display_condition):
                             with html.Div(
+                                v_show=display_condition,
                                 style="display: flex; flex-direction: column;",
                             ) as container:
                                 html.H3(
@@ -698,9 +742,10 @@ class InputFileEditor:
                                         )
 
                             return container
-                        create_toggler("Blocks", "blocks")
-                        create_toggler("Boundaries", "boundaries")
-                        create_toggler("Nodesets", "nodesets")
+                        create_toggler("Blocks", "blocks", ('!bc_selected',))
+                        create_toggler("Boundaries", "boundaries", ('!bc_selected',))
+                        create_toggler("Nodesets", "nodesets", ('!bc_selected',))
+                        create_toggler("Associated Boundaries", "bc_boundaries", ('bc_selected', False))
 
                     html.Div(
                         style="position: absolute; height: 100%; width: 100%; top: 0px; left: 0px; backdrop-filter: blur(5px);",
