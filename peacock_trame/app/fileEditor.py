@@ -99,17 +99,31 @@ class InputFileEditor:
         self.file_str_task = None
 
     def on_proxy_change(self, topic, ids=None, **kwargs):
+        state = self._server.state
         if not self.updating_from_editor:  # only update editor when change comes from simput
             if topic == 'changed':
                 # updating editor sometimes de-focuses parameter input field
                 # adding delay gives time for user to finish input
                 self.update_editor(delay=0.5)
 
-            # update render window if mesh updated from simput
             for proxy_id in ids:
-                if '/Mesh_type' in proxy_id:
+                if '/Mesh_type' in proxy_id:  # update render window if mesh updated from simput
                     self.create_vtk_render_window()
                     break
+                elif state.bc_selected:  # check if new boundaries added to BC
+                    block_path = state.active_id.split('_type_')[0]
+                    active_block = self.tree.getBlockInfo(block_path)
+
+                    boundaries = active_block.paramValue('boundary')
+                    for boundary_id in boundaries:
+                        if boundary_id not in state.bc_boundaries and boundary_id in state.boundaries:
+                            info = state.boundaries[boundary_id].copy()
+                            info['visible'] = True
+                            self.vtkMappers['boundaries'].SetBlockVisibility(info['index'], True)
+                            state.bc_boundaries[boundary_id] = info
+                            state.dirty('bc_boundaries')
+                            self.vtkRenderWindow.Render()
+                            break  # should be a max of 1 added boundary when this is called
 
     def set_input_file(self, file_name=None, file_str=None, update_file_str=True):
         # sets the input file of the InputTree object and populates simput/ui
