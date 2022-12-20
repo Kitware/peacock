@@ -385,27 +385,32 @@ class InputFileEditor:
             state.bc_selected = True
             boundaries = active_block.paramValue('boundary')
 
+            mapper = self.vtkMappers['blocks']
             for block_id, info in state.blocks.items():
-                self.vtkMappers['blocks'].SetBlockVisibility(info['index'], True)
+                mapper.SetBlockVisibility(info['index'], True)  # show all blocks
+                mapper.SetBlockColor(info['index'], [1, 1, 1])  # make blocks white
 
             boundaries_info = {}
+            mapper = self.vtkMappers['boundaries']
             for boundary_id, info in state.boundaries.items():
                 if boundary_id in boundaries:
-                    self.vtkMappers['boundaries'].SetBlockVisibility(info['index'], True)
+                    mapper.SetBlockVisibility(info['index'], True)  # show associated boundaries
+                    red = list(map(lambda x: x / 255, [244, 67, 54]))
+                    mapper.SetBlockColor(info['index'], red)  # set to default red color
                     boundaries_info[boundary_id] = info.copy()
                     boundaries_info[boundary_id]['visible'] = True
                 else:
-                    self.vtkMappers['boundaries'].SetBlockVisibility(info['index'], False)
+                    self.vtkMappers['boundaries'].SetBlockVisibility(info['index'], False)  # hide others
             state.bc_boundaries = boundaries_info
 
             for nodeset, info in state.nodesets.items():
-                self.vtkMappers['nodesets'].SetBlockVisibility(info['index'], False)
+                self.vtkMappers['nodesets'].SetBlockVisibility(info['index'], False)  # hide all nodesets
 
             self.vtkRenderWindow.Render()
         else:
-            if state.bc_selected:
+            if state.bc_selected:  # boundary de-selected
                 state.bc_selected = False
-                # reset to user selected values
+                # reset viz to user selected values
                 for set_type in ['blocks', 'boundaries', 'nodesets']:
                     mapper = self.vtkMappers[set_type]
                     for set_id, info in state[set_type].items():
