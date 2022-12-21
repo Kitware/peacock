@@ -73,7 +73,7 @@ class InputFileEditor:
         self.simput_types = []
         self.simput_manager = simput_manager
         self.pxm = simput_manager.proxymanager
-        self.file_str_task = None
+        self.debounce_tasks = {}
         self.updating_from_editor = False
         self.vtkRenderWindow = None
         self.vtkRenderer = None
@@ -86,29 +86,33 @@ class InputFileEditor:
         state = self._server.state
         state.show_file_editor = not state.show_file_editor
 
-    def update_editor(self, delay=0):
-        if self.file_str_task:
-            self.file_str_task.cancel()
-        self.file_str_task = asyncio.create_task(self.update_editor_task(delay))
-
-    async def update_editor_task(self, delay):
-        await asyncio.sleep(delay)
+    def update_editor(self):
         state = self._server.state
         state.file_str = self.tree.getInputFileString()
         state.flush()
-        self.file_str_task = None
+
+    def debounced_run(self, callback, delay=0):
+        func_name = callback.__name__
+        if func_name in self.debounce_tasks:
+            self.debounce_tasks[func_name].cancel()
+
+        async def task():
+            await asyncio.sleep(delay)
+            callback()
+            del self.debounce_tasks[func_name]
+        self.debounce_tasks[func_name] = asyncio.create_task(task())
 
     def on_proxy_change(self, topic, ids=None, **kwargs):
         state = self._server.state
         if not self.updating_from_editor:  # only update editor when change comes from simput
             if topic == 'changed':
-                # updating editor sometimes de-focuses parameter input field
-                # adding delay gives time for user to finish input
-                self.update_editor(delay=0.5)
+                # debounce to prevent running on each user input, bogs down the server
+                self.debounced_run(self.update_editor, 0.5)
 
             for proxy_id in ids:
                 if '/Mesh_type' in proxy_id:  # update render window if mesh updated from simput
-                    self.create_vtk_render_window()
+                    # debounce to prevent running on each user input, bogs down the server
+                    self.debounced_run(self.create_vtk_render_window, 0.5)
                     break
                 elif state.bc_selected:  # check if new boundaries added to BC
                     block_path = state.active_id.split('_type_')[0]
@@ -875,6 +879,7 @@ class InputFileEditor:
         except BadExecutableException:
             print("'--mesh-only' executable run failed")
             state.mesh_invalid = True
+            state.flush()
             return
 
         reader = vtkExodusIIReader()
@@ -998,8 +1003,9 @@ class InputFileEditor:
         state.blocks = block_info
         state.boundaries = boundary_info
         state.nodesets = nodeset_info
-
         state.mesh_invalid = False
+        state.flush()
+
         return renderWindow
 
 
