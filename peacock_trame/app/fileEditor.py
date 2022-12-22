@@ -478,17 +478,26 @@ class InputFileEditor:
         parent_info = block_info.parent
         self.tree.renameUserBlock(parent_info.path, block_info.name, active_name)
 
+        def update_paths_and_ids(block_entry, parent_info):
+            old_path, simput_type = block_entry['id'].split('_type_')
+            block_info = parent_info.children[block_entry['name']]
+            new_proxy_id = block_info.path + '_type_' + simput_type
+            self.pxm.create(simput_type, existing_obj=block_info, proxy_id=new_proxy_id)
+            self.pxm.delete(block_entry['id'])
+            block_entry['path'] = block_info.path
+            block_entry['id'] = new_proxy_id
+
+            for child in block_entry['children']:
+                update_paths_and_ids(child, block_info)
+            for child in block_entry['hidden_children']:
+                update_paths_and_ids(child, block_info)
+
+            return new_proxy_id
+
         block_entry = self.get_block_tree_entry(path)
         block_entry['name'] = block_info.name
-        block_entry['path'] = block_info.path
-        block_entry['id'] = block_info.path + '_type_' + simput_type
-
-        # change proxy id
-        pxm = self.pxm
-        new_proxy_id = block_info.path + '_type_' + simput_type
-        pxm.create(simput_type, existing_obj=block_info, proxy_id=new_proxy_id)
-        pxm.delete(active_id)
-        state.active_id = new_proxy_id
+        state.active_id = update_paths_and_ids(block_entry, parent_info)
+        state.active_ids = [state.active_id]
         state.dirty('block_tree')
 
     def toggle_mesh_viz(self, viz_type, viz_id):
