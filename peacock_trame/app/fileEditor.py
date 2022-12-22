@@ -78,6 +78,7 @@ class InputFileEditor:
         self.vtkRenderWindow = None
         self.vtkRenderer = None
         self.set_input_file(file_name=state.input_file)
+        self.update_editor()
 
         self.pxm.on(self.on_proxy_change)
 
@@ -104,16 +105,16 @@ class InputFileEditor:
 
     def on_proxy_change(self, topic, ids=None, **kwargs):
         state = self._server.state
-        if not self.updating_from_editor:  # only update editor when change comes from simput
-            if topic == 'changed':
-                # debounce to prevent running on each user input, bogs down the server
-                self.debounced_run(self.update_editor, 0.5)
+
+        # only update when change comes from simput
+        if not self.updating_from_editor:
+            # debounce to prevent running on each user input, bogs down the server
+            self.debounced_run(self.update_editor, 0.5)
 
             for proxy_id in ids:
                 if '/Mesh_type' in proxy_id:  # update render window if mesh updated from simput
                     # debounce to prevent running on each user input, bogs down the server
                     self.debounced_run(self.create_vtk_render_window, 0.5)
-                    break
                 elif state.bc_selected:  # check if new boundaries added to BC
                     block_path = state.active_id.split('_type_')[0]
                     active_block = self.tree.getBlockInfo(block_path)
@@ -127,9 +128,8 @@ class InputFileEditor:
                             state.bc_boundaries[boundary_id] = info
                             state.dirty('bc_boundaries')
                             self.vtkRenderWindow.Render()
-                            break  # should be a max of 1 added boundary when this is called
 
-    def set_input_file(self, file_name=None, file_str=None, update_file_str=True):
+    def set_input_file(self, file_name=None, file_str=None):
         # sets the input file of the InputTree object and populates simput/ui
 
         if file_name:
@@ -151,9 +151,6 @@ class InputFileEditor:
                 self.add_block(block)
             else:
                 insort(state.unused_blocks, {'name': block.name, 'path': block.path}, key=lambda e: e['name'])
-
-        if update_file_str:
-            state.file_str = self.tree.getInputFileString()
 
         return True
 
@@ -471,7 +468,6 @@ class InputFileEditor:
         self.tree.path_map[block_path] = new_block_info
 
         state.active_id = proxy_id
-        self.update_editor()
 
     def on_active_name(self, active_name, **kwargs):
         state = self._server.state
@@ -556,7 +552,7 @@ class InputFileEditor:
         # this is not optimal but it will work for now
         self.updating_from_editor = True
         old_mesh = self.tree.getBlockInfo('/Mesh')
-        if self.set_input_file(file_str=file_str, update_file_str=False):
+        if self.set_input_file(file_str=file_str):
             state = self._server.state
             path, active_type_path = state.active_id.split('_type_')
             active_block = self.tree.getBlockInfo(path)
