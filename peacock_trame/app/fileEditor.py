@@ -307,6 +307,7 @@ class InputFileEditor:
         parent_entry['children'].append(child_entry)
 
         self._server.state.dirty('block_tree')
+        self.update_editor()
 
     def format_simput_param(self, param):
         # formats a simput property from a ParameterInfo object for use in the simput model
