@@ -92,14 +92,14 @@ class InputFileEditor:
         state.file_str = self.tree.getInputFileString()
         state.flush()
 
-    def debounced_run(self, callback, delay=0):
+    def debounced_run(self, callback, args=[], delay=0):
         func_name = callback.__name__
         if func_name in self.debounce_tasks:
             self.debounce_tasks[func_name].cancel()
 
         async def task():
             await asyncio.sleep(delay)
-            callback()
+            callback(*args)
             del self.debounce_tasks[func_name]
         self.debounce_tasks[func_name] = asyncio.create_task(task())
 
@@ -109,12 +109,12 @@ class InputFileEditor:
         # only update when change comes from simput
         if not self.updating_from_editor:
             # debounce to prevent running on each user input, bogs down the server
-            self.debounced_run(self.update_editor, 0.5)
+            self.debounced_run(self.update_editor, delay=0.5)
 
             for proxy_id in ids:
                 if '/Mesh_type' in proxy_id:  # update render window if mesh updated from simput
                     # debounce to prevent running on each user input, bogs down the server
-                    self.debounced_run(self.create_vtk_render_window, 0.5)
+                    self.debounced_run(self.create_vtk_render_window, delay=0.5)
                 elif state.bc_selected:  # check if new boundaries added to BC
                     block_path = state.active_id.split('_type_')[0]
                     active_block = self.tree.getBlockInfo(block_path)
@@ -557,7 +557,7 @@ class InputFileEditor:
         self.remove_block(block_to_remove)
         self._server.state.block_to_remove = None
 
-    def on_file_str(self, file_str, **kwargs):
+    def populate_from_editor(self, file_str):
         # repopulate entire tree
         # this is not optimal but it will work for now
         self.updating_from_editor = True
@@ -586,6 +586,9 @@ class InputFileEditor:
                 self.create_vtk_render_window()
             self._server.controller.simput_reload_data()
         self.updating_from_editor = False
+
+    def on_file_str(self, file_str):
+        self.debounced_run(self.populate_from_editor, [file_str], delay=0.5)
 
     def toggle_mesh(self):
         state = self._server.state
