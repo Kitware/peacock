@@ -55,14 +55,17 @@ class Executor():
         self.terminal_print(f"Running command: {' '.join(args)}", color="MAGENTA")
         self.terminal_print(f"Working directory: {os.getcwd()}", color="MAGENTA")
 
-        process = subprocess.Popen(args, stdout=subprocess.PIPE)
-        for line in process.stdout:
+        self.process = subprocess.Popen(args, stdout=subprocess.PIPE)
+        for line in self.process.stdout:
             ctrl.write_to_terminal(line.decode())
             await asyncio.sleep(0)
-        process.stdout.close()
+        self.process.stdout.close()
         state.exe_running = False
         state.flush()
         await asyncio.sleep(0)
+
+    def kill(self):
+        self.process.kill()
 
     def get_ui(self):
         ctrl = self._server.controller
@@ -117,9 +120,22 @@ class Executor():
                         "Run",
                         click=self.run,
                         disabled=("exe_running || exe_use_threading && exe_threads < 2 || exe_use_mpi && exe_processes < 2",),
+                        style="margin-right: 35px;",
                     )
+                    vuetify.VBtn(
+                        "Kill",
+                        click=self.kill,
+                        disabled=("!exe_running",),
+                        style="margin-right: 35px;",
+                    )
+                    vuetify.VBtn(
+                        "Clear",
+                        click=ctrl.clear_terminal,
+                    )
+
             with html.Div(classes="pa-2", style="flex: 1 1 0px; width: 100%;"):
                 term = peacock.Terminal()
                 ctrl.write_to_terminal = term.write
+                ctrl.clear_terminal = term.clear
 
         return executor_ui

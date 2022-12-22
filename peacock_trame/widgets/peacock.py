@@ -40,3 +40,6 @@ class Terminal(HtmlElement):
 
     def write(self, string):
         self.server.js_call(self._ref, "write", string)
+
+    def clear(self):
+        self.server.js_call(self._ref, "clear")

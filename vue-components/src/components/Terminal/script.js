@@ -6,7 +6,10 @@ export default {
   name: "Terminal",
   methods: {
     write(string) {
-        this.term.writeln(string)
+      this.term.writeln(string);
+    },
+    clear() {
+      this.term.clear();
     },
   },
   mounted() {
