@@ -141,10 +141,8 @@ class InputFileEditor:
             return False
 
         state = self._server.state
-        self.block_tree = []  # list of tree entries as used by vuetify's vtreeview
-        self.unused_blocks = []  # unused parent block names
-        state.block_tree = self.block_tree
-        state.unused_blocks = self.unused_blocks
+        state.block_tree = []  # list of tree entries as used by vuetify's vtreeview
+        state.unused_blocks = []  # unused parent block names
 
         # --- populate input file tree ---
         root_block = self.tree.getBlockInfo('/')
@@ -152,7 +150,7 @@ class InputFileEditor:
             if block.included:
                 self.add_block(block)
             else:
-                insort(self.unused_blocks, {'name': block.name, 'path': block.path}, key=lambda e: e['name'])
+                insort(state.unused_blocks, {'name': block.name, 'path': block.path}, key=lambda e: e['name'])
 
         if update_file_str:
             state.file_str = self.tree.getInputFileString()
@@ -205,6 +203,7 @@ class InputFileEditor:
 
     def add_block(self, block_info):
         # Adds block and all children to vuetify block tree and simput
+        state = self._server.state
 
         # --- create simput entry ---
         type_info = self.get_type_info(block_info)
@@ -237,7 +236,7 @@ class InputFileEditor:
         parent = block_info.parent
         if parent.path == '/':  # no parent
             # add block to tree sorted by name
-            insort(self.block_tree, block_entry, key=lambda e: e['name'])
+            insort(state.block_tree, block_entry, key=lambda e: e['name'])
         else:
             parent_entry = self.get_block_tree_entry(parent.path)
             if block_info.included:
@@ -249,11 +248,13 @@ class InputFileEditor:
         for child in block_info.children.values():
             self.add_block(child)
 
+        state.dirty('block_tree')
+
     def get_block_tree_entry(self, path):
         # path is in form /ancestor_a/ancestor_b/.../parent/block
         # splitting by '/' gives ['', ancestor_a, ancestor_b, ... ,parent, block]
         ancestors = path.split('/')[1:]
-        block_list = self.block_tree
+        block_list = self._server.state.block_tree
         # find block in tree
         for ancestor in ancestors:
             for b in block_list:
@@ -285,7 +286,7 @@ class InputFileEditor:
         proxy_id = path + '_type_' + self.get_type_info(block_info).path
         self.pxm.delete(proxy_id)
 
-        self.update_state()
+        state.dirty('block_tree')
 
     def add_child_block(self, parent_path, child_type):
         parent_info = self.tree.getBlockInfo(parent_path)
@@ -295,7 +296,6 @@ class InputFileEditor:
         if child_type != parent_info.name:  # only set type if valid type was passed
             new_block.setBlockType(child_type)
         self.add_block(new_block)
-        self.update_state()
 
     def include_child(self, parent_path, child_name):
         parent_info = self.tree.getBlockInfo(parent_path)
@@ -309,7 +309,7 @@ class InputFileEditor:
         parent_entry['hidden_children'].remove(child_entry)
         parent_entry['children'].append(child_entry)
 
-        self.update_state()
+        self._server.state.dirty('block_tree')
 
     def format_simput_param(self, param):
         # formats a simput property from a ParameterInfo object for use in the simput model
@@ -476,14 +476,16 @@ class InputFileEditor:
     def on_active_name(self, active_name, **kwargs):
         state = self._server.state
         active_id = state.active_id
+
         path, simput_type = active_id.split('_type_')
         block_info = self.tree.getBlockInfo(path)
-        block_entry = self.get_block_tree_entry(block_info.path)
-        block_entry['name'] = active_name
-
         parent_info = block_info.parent
         self.tree.renameUserBlock(parent_info.path, block_info.name, active_name)
-        self.update_state()
+
+        block_entry = self.get_block_tree_entry(path)
+        block_entry['name'] = block_info.name
+        block_entry['path'] = block_info.path
+        block_entry['id'] = block_info.path + '_type_' + simput_type
 
         # change proxy id
         pxm = self.pxm
@@ -491,6 +493,7 @@ class InputFileEditor:
         pxm.create(simput_type, existing_obj=block_info, proxy_id=new_proxy_id)
         pxm.delete(active_id)
         state.active_id = new_proxy_id
+        state.dirty('block_tree')
 
     def toggle_mesh_viz(self, viz_type, viz_id):
         state = self._server.state
@@ -530,16 +533,16 @@ class InputFileEditor:
         state = self._server.state
 
         # remove from unused_blocks
-        for block_idx, block in enumerate(self.unused_blocks):
+        for block_idx, block in enumerate(state.unused_blocks):
             if block['path'] == block_to_add:
-                self.unused_blocks.pop(block_idx)
+                state.unused_blocks.pop(block_idx)
 
         # add to block tree
         block = self.tree.getBlockInfo(block_to_add)
         block.included = True
         self.add_block(block)
         state.block_to_add = None
-        self.update_state()
+        state.dirty('block_tree')
 
     def on_block_to_remove(self, block_to_remove, **kwargs):
         if block_to_remove is None:
@@ -577,14 +580,6 @@ class InputFileEditor:
                 self.create_vtk_render_window()
             self._server.controller.simput_reload_data()
         self.updating_from_editor = False
-
-    def update_state(self):
-        # update trame server state to align with self
-        state = self._server.state
-        state.unused_blocks = self.unused_blocks
-        state.block_tree = self.block_tree
-        state.dirty('unused_blocks')
-        state.dirty('block_tree')
 
     def toggle_mesh(self):
         state = self._server.state
