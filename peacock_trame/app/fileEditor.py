@@ -383,7 +383,7 @@ class InputFileEditor:
             or active_block.parent.name == 'BCs'
         )
 
-        if active_block.parent.name == 'BCs':
+        if active_block.parent.name == 'BCs':  # boundary condition selected, highlight in mesh viewer
             state.bc_selected = True
             boundaries = active_block.paramValue('boundary')
 
@@ -396,11 +396,16 @@ class InputFileEditor:
             mapper = self.vtkMappers['boundaries']
             for boundary_id, info in state.boundaries.items():
                 if boundary_id in boundaries:
-                    mapper.SetBlockVisibility(info['index'], True)  # show associated boundaries
-                    red = list(map(lambda x: x / 255, [244, 67, 54]))
-                    mapper.SetBlockColor(info['index'], red)  # set to default red color
-                    boundaries_info[boundary_id] = info.copy()
-                    boundaries_info[boundary_id]['visible'] = True
+                    idx = info['index']
+                    mapper.SetBlockVisibility(idx, True)  # show associated boundaries
+                    red = [244, 67, 54]
+                    mapper.SetBlockColor(idx, list(map(lambda x: x / 255, red)))  # set to default red color
+                    boundaries_info[boundary_id] = {
+                        'index': idx,
+                        'visible': True,
+                        'rgb': dict(zip('rgb', red)),
+                        'html_color': 'rgb' + str(tuple(red)),
+                    }
                 else:
                     self.vtkMappers['boundaries'].SetBlockVisibility(info['index'], False)  # hide others
             state.bc_boundaries = boundaries_info
