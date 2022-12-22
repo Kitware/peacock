@@ -536,6 +536,7 @@ class InputFileEditor:
 
         # add to block tree
         block = self.tree.getBlockInfo(block_to_add)
+        block.included = True
         self.add_block(block)
         state.block_to_add = None
         self.update_state()
