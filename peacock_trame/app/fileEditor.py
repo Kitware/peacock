@@ -161,7 +161,6 @@ class InputFileEditor:
         print(f"Writing to {path}...")
         with open(path, 'w') as f:
             f.write(self.tree.getInputFileString())
-        print("done")
 
     def add_to_simput_model(self, type_info):
         simput_type = type_info.path
@@ -668,14 +667,14 @@ class InputFileEditor:
             with html.Div(
                 style="position: relative; flex: 1 1 0px; height: 100%; display: flex; flex-direction: column; padding: 5px;",
             ):
-                with html.Div(style="position: absolute; top: 0px; width: 100%; display: flex; justify-content: center; z-index: 2;"):
+                with html.Div(style="position: absolute; top: 0px; width: 100%; display: flex; justify-content: center;"):
                     with vuetify.VHover(
                         v_slot="{ hover }",
                         v_if=("!show_mesh",),
                     ):
                         with vuetify.VBtn(
                             click=self.toggle_mesh,
-                            style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 0px 0px 4px 4px;",
+                            style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 0px 0px 4px 4px; z-index: 3;",
                         ):
                             with html.Div(style="display: flex; flex-direction: column;"):
                                 vuetify.VIcon(
@@ -693,13 +692,13 @@ class InputFileEditor:
                     v_if=("show_mesh",),
                     style="position: relative; width: 100%; height: 50vh; border-radius: 5px; overflow: hidden; margin-bottom: 10px;",
                 ):
-                    with html.Div(style="position: absolute; bottom: 0px; width: 100%; display: flex; justify-content: center; z-index: 2;"):
+                    with html.Div(style="position: absolute; bottom: 0px; width: 100%; display: flex; justify-content: center;"):
                         with vuetify.VHover(
                             v_slot="{ hover }",
                         ):
                             with vuetify.VBtn(
                                 click=self.toggle_mesh,
-                                style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 4px 4px 0px 0px;",
+                                style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 4px 4px 0px 0px; z-index: 3;",
                             ):
                                 with html.Div(style="display: flex; flex-direction: column;"):
                                     with vuetify.VSlideYReverseTransition():
@@ -718,70 +717,137 @@ class InputFileEditor:
                     )
                     ctrl.update_vtk_view = vtkView.update
 
+                    # block, boundary, nodeset selector
                     with html.Div(
-                        style="position: absolute; bottom: 10px; left: 10px; display: flex; justify-content: space-between;",
+                        style="position: absolute; bottom: 0px; left: 0px; display: flex; z-index: 1;",
                     ):
-                        # block, boundary, nodeset selector
-                        def create_toggler(label, array_name, display_condition):
+                        def create_viz_editor(label, array_name, is_bc=False):
+                            if is_bc:
+                                cond1 = ("bc_selected", False)
+                                cond2 = None
+
+                            else:
+                                cond1 = ("!bc_selected",)
+                                cond2 = ("show_" + array_name, False)
+
                             with html.Div(
-                                v_show=display_condition,
-                                style="display: flex; flex-direction: column;",
-                            ) as container:
-                                html.H3(
-                                    label,
-                                    style="text-align: center;",
-                                )
-                                with html.Div(
-                                    style="position: relative; display: flex; align-items: center; justify-content: space-between;",
-                                    v_for=("(value, key) in " + array_name,),
-                                ):
-                                    with vuetify.VBtn(
-                                        icon=True,
-                                        click=(self.toggle_mesh_viz, "['" + array_name + "', key]"),
+                                style="position: relative; display: flex; align-items: flex-end; justify-content: center; width: 150px;",
+                                v_show=cond1,
+                            ):
+                                if not is_bc:
+                                    # toggle display button
+                                    with html.Div(
+                                        style="position: absolute; width: 100%; display: flex; justify-content: center;",
                                     ):
-                                        vuetify.VIcon(
-                                            'mdi-eye-outline',
-                                            v_if="value.visible",
-                                        )
-                                        vuetify.VIcon(
-                                            'mdi-eye-off-outline',
-                                            v_if="!value.visible",
-                                        )
+                                        with vuetify.VHover(
+                                            v_slot="{ hover }",
+                                        ):
+                                            with vuetify.VBtn(
+                                                small=True,
+                                                depressed=True,
+                                                click="show_" + array_name + " = true",
+                                                style="border-radius: 4px 4px 0px 0px; height: auto; min-height: 0px; width: 80%;",
+                                                v_show='!show_' + array_name,
+                                            ):
+                                                with html.Div(style="display: flex; flex-direction: column;"):
+                                                    with vuetify.VSlideYReverseTransition():
+                                                        vuetify.VIcon(
+                                                            'mdi-chevron-up',
+                                                            v_if="hover",
+                                                            style="height: 15px; padding: 5px;"
+                                                        )
+                                                    html.P(
+                                                        label,
+                                                        style="margin: 0; padding: 5px;",
+                                                    )
 
-                                    html.H3("{{key}}")
-
-                                    with vuetify.VMenu(
-                                        top=True,
-                                        offset_x=10,
-                                        offset_y=10,
-                                        close_on_content_click=False,
+                                # viz and color selectors
+                                with vuetify.VSlideYReverseTransition():
+                                    with html.Div(
+                                        v_if=cond2,
+                                        style="display: flex; flex-direction: column; position: relative;",
                                     ):
-                                        with vuetify.Template(v_slot_activator="{ on }",):
+                                        if is_bc:
+                                            html.P(
+                                                label,
+                                                style="margin: 0; text-align: center;"
+                                            )
+                                        else:
+                                            with html.Div(
+                                                style="position: absolute; top: -15px; width: 100%; display: flex; justify-content: center; z-index: 1;"
+                                            ):
+                                                with vuetify.VHover(
+                                                    v_slot="{ hover }",
+                                                ):
+                                                    with vuetify.VBtn(
+                                                        text=("!hover",),
+                                                        small=True,
+                                                        click="show_" + array_name + " = false",
+                                                        style="min-height: 0px; height: auto;"
+                                                    ):
+                                                        with html.Div(style="display: flex; flex-direction: column;"):
+                                                            html.P(
+                                                                label,
+                                                                style="margin: 0;",
+                                                            )
+                                                            with vuetify.VSlideYTransition():
+                                                                vuetify.VIcon(
+                                                                    'mdi-chevron-down',
+                                                                    v_if="hover",
+                                                                    style="height: 15px; padding-top: 15px; padding-bottom: 10px;"
+                                                                )
+                                        with html.Div(
+                                            style="position: relative; display: flex; align-items: center; justify-content: space-between;",
+                                            v_for=("(value, key) in " + array_name,),
+                                        ):
                                             with vuetify.VBtn(
                                                 icon=True,
-                                                v_on="on",
+                                                click=(self.toggle_mesh_viz, "['" + array_name + "', key]"),
                                             ):
-                                                html.Div(
-                                                    style=("{width: '10px', height: '10px', background: value.html_color}",),
+                                                vuetify.VIcon(
+                                                    'mdi-eye-outline',
+                                                    v_if="value.visible",
                                                 )
-                                        vuetify.VColorPicker(
-                                            hide_canvas=True,
-                                            hide_sliders=True,
-                                            hide_inputs=True,
-                                            hide_mode_switch=True,
-                                            show_swatches=True,
-                                            v_model=("value.rgb",),
-                                            input=(self.on_color_change, "[$event, '" + array_name + "', key]"),
-                                        )
+                                                vuetify.VIcon(
+                                                    'mdi-eye-off-outline',
+                                                    v_if="!value.visible",
+                                                )
 
-                            return container
-                        create_toggler("Blocks", "blocks", ('!bc_selected',))
-                        create_toggler("Boundaries", "boundaries", ('!bc_selected',))
-                        create_toggler("Nodesets", "nodesets", ('!bc_selected',))
-                        create_toggler("Associated Boundaries", "bc_boundaries", ('bc_selected', False))
+                                            html.P(
+                                                "{{key}}",
+                                                style="margin: 0;"
+                                            )
+
+                                            with vuetify.VMenu(
+                                                top=True,
+                                                offset_x=10,
+                                                offset_y=10,
+                                                close_on_content_click=False,
+                                            ):
+                                                with vuetify.Template(v_slot_activator="{ on }",):
+                                                    with vuetify.VBtn(
+                                                        icon=True,
+                                                        v_on="on",
+                                                    ):
+                                                        html.Div(
+                                                            style=("{width: '10px', height: '10px', background: value.html_color}",),
+                                                        )
+                                                vuetify.VColorPicker(
+                                                    hide_canvas=True,
+                                                    hide_sliders=True,
+                                                    hide_inputs=True,
+                                                    hide_mode_switch=True,
+                                                    show_swatches=True,
+                                                    v_model=("value.rgb",),
+                                                    input=(self.on_color_change, "[$event, '" + array_name + "', key]"),
+                                                )
+                        create_viz_editor("Blocks", "blocks",)
+                        create_viz_editor("Boundaries", "boundaries")
+                        create_viz_editor("Nodesets", "nodesets")
+                        create_viz_editor("Associated Boundaries", "bc_boundaries", True)
 
                     html.Div(
-                        style="position: absolute; height: 100%; width: 100%; top: 0px; left: 0px; backdrop-filter: blur(5px);",
+                        style="position: absolute; height: 100%; width: 100%; top: 0px; left: 0px; backdrop-filter: blur(5px); z-index: 2;",
                         v_show=("mesh_invalid", False)
                     )
 
@@ -819,7 +885,7 @@ class InputFileEditor:
 
             with vuetify.VHover(
                 v_slot="{ hover }",
-                style="position: absolute; top: 25%; right: 0px; z-index: 2;",
+                style="position: absolute; top: 25%; right: 0px; z-index: 3;",
                 v_if=("!show_file_editor",),
             ):
                 with vuetify.VBtn(
@@ -844,7 +910,7 @@ class InputFileEditor:
                 ):
                     with vuetify.VHover(
                         v_slot="{ hover }",
-                        style="position: absolute; top: 25%; left: 0; z-index: 2;",
+                        style="position: absolute; top: 25%; left: 0; z-index: 3;",
                     ):
                         with vuetify.VBtn(
                             click=self.toggle_editor,
