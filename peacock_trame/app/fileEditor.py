@@ -885,7 +885,7 @@ class InputFileEditor:
 
             with vuetify.VHover(
                 v_slot="{ hover }",
-                style="position: absolute; top: 25%; right: 0px; z-index: 3;",
+                style="position: absolute; top: 10px; right: 0px; z-index: 3;",
                 v_if=("!show_file_editor",),
             ):
                 with vuetify.VBtn(
@@ -910,7 +910,7 @@ class InputFileEditor:
                 ):
                     with vuetify.VHover(
                         v_slot="{ hover }",
-                        style="position: absolute; top: 25%; left: 0; z-index: 3;",
+                        style="position: absolute; top: 10px; left: 0; z-index: 3;",
                     ):
                         with vuetify.VBtn(
                             click=self.toggle_editor,
