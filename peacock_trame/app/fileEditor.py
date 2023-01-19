@@ -2,10 +2,9 @@ import os
 import sys
 from pyaml import yaml
 from bisect import insort
-import asyncio
 import difflib
 
-from trame.widgets import vuetify, vtk, html, simput
+from trame.widgets import vuetify, html, simput, vtk, paraview
 from trame_simput.core.mapping import ProxyObjectAdapter, ObjectFactory
 
 from vtkmodules.vtkRenderingCore import (
@@ -25,12 +24,20 @@ import vtkmodules.vtkRenderingOpenGL2  # noqa
 from peacock_trame.widgets import peacock
 
 from .core.common.PeacockException import BadExecutableException
+from .core.common.utils import debounced_run
 # add moose/python to sys path
 moose_dir = os.environ.get("MOOSE_DIR", None)
 sys.path.append(os.path.join(moose_dir, 'python'))
 from .core.input.InputTree import InputTree  # noqa
 from .core.input.ExecutableInfo import ExecutableInfo  # noqa
 from .core.common import ExeLauncher  # noqa
+
+try:
+    from paraview import simple
+    USE_PARAVIEW = True
+except ModuleNotFoundError:
+    USE_PARAVIEW = False
+print("USE_PARAVIEW: ", USE_PARAVIEW)
 
 
 class InputFileEditor:
@@ -73,7 +80,6 @@ class InputFileEditor:
         self.simput_types = []
         self.simput_manager = simput_manager
         self.pxm = simput_manager.proxymanager
-        self.debounce_tasks = {}
         self.updating_from_editor = False
         self.vtkRenderWindow = None
         self.vtkRenderer = None
@@ -92,29 +98,18 @@ class InputFileEditor:
         state.file_str = self.tree.getInputFileString()
         state.flush()
 
-    def debounced_run(self, callback, args=[], delay=0):
-        func_name = callback.__name__
-        if func_name in self.debounce_tasks:
-            self.debounce_tasks[func_name].cancel()
-
-        async def task():
-            await asyncio.sleep(delay)
-            callback(*args)
-            del self.debounce_tasks[func_name]
-        self.debounce_tasks[func_name] = asyncio.create_task(task())
-
     def on_proxy_change(self, topic, ids=None, **kwargs):
         state = self._server.state
 
         # only update when change comes from simput
         if not self.updating_from_editor:
             # debounce to prevent running on each user input, bogs down the server
-            self.debounced_run(self.update_editor, delay=0.5)
+            debounced_run(self.update_editor, delay=0.5)
 
             for proxy_id in ids:
                 if '/Mesh_type' in proxy_id:  # update render window if mesh updated from simput
                     # debounce to prevent running on each user input, bogs down the server
-                    self.debounced_run(self.create_vtk_render_window, delay=0.5)
+                    debounced_run(self.update_render_window, delay=0.5)
                 elif state.bc_selected:  # check if new boundaries added to BC
                     block_path = state.active_id.split('_type_')[0]
                     active_block = self.tree.getBlockInfo(block_path)
@@ -128,6 +123,7 @@ class InputFileEditor:
                             state.bc_boundaries[boundary_id] = info
                             state.dirty('bc_boundaries')
                             self.vtkRenderWindow.Render()
+                            self._server.controller.update_input_mesh_view()
 
     def set_input_file(self, file_name=None, file_str=None):
         # sets the input file of the InputTree object and populates simput/ui
@@ -413,6 +409,7 @@ class InputFileEditor:
                 self.vtkMappers['nodesets'].SetBlockVisibility(info['index'], False)  # hide all nodesets
 
             self.vtkRenderWindow.Render()
+            self._server.controller.update_input_mesh_view()
         else:
             if state.bc_selected:  # boundary de-selected
                 state.bc_selected = False
@@ -425,6 +422,7 @@ class InputFileEditor:
                         mapper.SetBlockColor(info['index'], vtk_color)
 
                 self.vtkRenderWindow.Render()
+                self._server.controller.update_input_mesh_view()
 
         state.active_name = active_block.name
         state.name_editable = active_block.user_added
@@ -517,6 +515,7 @@ class InputFileEditor:
         mapper = self.vtkMappers[viz_type]
         mapper.SetBlockVisibility(info['index'], info['visible'])
         self.vtkRenderWindow.Render()
+        self._server.controller.update_input_mesh_view()
 
     def on_color_change(self, rgb_obj, viz_type, viz_id):
         state = self._server.state
@@ -533,6 +532,7 @@ class InputFileEditor:
         vtk_color = list(map(lambda x: x / 255, rgb))
         mapper.SetBlockColor(info['index'], vtk_color)
         self.vtkRenderWindow.Render()
+        self._server.controller.update_input_mesh_view()
 
     def on_block_to_add(self, block_to_add, **kwargs):
         # this function triggers when a new block is added to the tree in the ui
@@ -587,12 +587,12 @@ class InputFileEditor:
             # update vtk window if mesh changed
             new_mesh = self.tree.getBlockInfo('/Mesh')
             if old_mesh != new_mesh:
-                self.create_vtk_render_window()
+                self.update_render_window()
             self._server.controller.simput_reload_data()
         self.updating_from_editor = False
 
     def on_file_str(self, file_str):
-        self.debounced_run(self.populate_from_editor, [file_str], delay=0.5)
+        debounced_run(self.populate_from_editor, [file_str], delay=0.5)
 
     def toggle_mesh(self):
         state = self._server.state
@@ -712,10 +712,12 @@ class InputFileEditor:
                                         style="height: 15px;"
                                     )
 
-                    vtkView = vtk.VtkRemoteView(
-                        self.create_vtk_render_window(),
-                    )
-                    ctrl.update_vtk_view = vtkView.update
+                    renderWindow = self.update_render_window()
+                    if USE_PARAVIEW:
+                        renderView = paraview.VtkRemoteView(renderWindow, ref="input_view")
+                    else:
+                        renderView = vtk.VtkRemoteView(renderWindow, ref="input_view")
+                    ctrl.update_input_mesh_view = renderView.update
 
                     # block, boundary, nodeset selector
                     with html.Div(
@@ -937,7 +939,7 @@ class InputFileEditor:
 
         return input_ui
 
-    def create_vtk_render_window(self):
+    def update_render_window(self):
         server = self._server
         state, ctrl = server.state, server.controller
         input_file = state.input_file
@@ -1054,20 +1056,26 @@ class InputFileEditor:
 
         if self.vtkRenderWindow is None:
             # no mesh rendered yet
-            renderWindow = vtkRenderWindow()
+            if USE_PARAVIEW:
+                view = simple.CreateView('RenderView')
+                view.OrientationAxesVisibility = 0
+                renderWindow = view.GetRenderWindow()
+            else:
+                renderWindow = vtkRenderWindow()
             renderWindow.SetOffScreenRendering(1)
             interactor = vtkRenderWindowInteractor()
             interactor.SetRenderWindow(renderWindow)
             interactor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
+            renderWindow.AddRenderer(renderer)
+            renderWindow.Render()
             self.vtkRenderWindow = renderWindow
         else:
             # mesh rendered already
             renderWindow = self.vtkRenderWindow
             renderWindow.RemoveRenderer(self.vtkRenderer)
-            ctrl.update_vtk_view()
-
-        renderWindow.AddRenderer(renderer)
-        renderWindow.Render()
+            renderWindow.AddRenderer(renderer)
+            renderWindow.Render()
+            ctrl.update_input_mesh_view()
 
         self.vtkMappers = {
             'blocks': block_mapper,
@@ -1082,7 +1090,7 @@ class InputFileEditor:
         state.mesh_invalid = False
         state.flush()
 
-        return renderWindow
+        return view if USE_PARAVIEW else renderWindow
 
 
 class BlockFactory(ObjectFactory):

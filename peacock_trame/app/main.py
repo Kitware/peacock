@@ -14,9 +14,8 @@ from .fileEditor import (
     BlockFactory,
     BlockAdapter,
 )
-from .executor import (
-    Executor,
-)
+from .executor import Executor
+from .exodusViewer import ExodusViewer
 
 
 def _reload():
@@ -44,6 +43,7 @@ def initialize(server):
 
     file_editor = InputFileEditor(server, simput_manager)
     executor = Executor(server)
+    exodus_viewer = ExodusViewer(server)
 
     ctrl.simput_reload_data = simput_widget.reload_data
 
@@ -53,6 +53,11 @@ def initialize(server):
     with VAppLayout(server) as layout:
 
         layout.root = simput_widget
+
+        def on_tab_change(tab_idx):
+            # check for output file when switching to exodus viewer
+            if tab_idx == 2:
+                exodus_viewer.check_file()
 
         with html.Div(style="display: flex; border-bottom: 1px solid gray",):
             html.Img(
@@ -65,15 +70,16 @@ def initialize(server):
                 v_model=("tab_idx", 0),
                 classes="flex-grow-0",
                 color='grey',
+                change=(on_tab_change, "[$event]"),
             ):
-                for tab_label in ['Input File', 'Execute']:
+                for tab_label in ['Input File', 'Execute', 'Exodus Viewer']:
                     vuetify.VTab(tab_label)
 
         # input file editor
         with vuetify.VCol(v_show=("tab_idx == 0",), classes="flex-grow-1 pa-0 ma-0"):
             file_editor.get_ui()
         with html.Div(
-            v_if=("tab_idx == 0",),
+            v_show=("tab_idx == 0",),
             style="position: absolute; top: 10px; right: 10px; display: flex;",
         ):
             with vuetify.VBtn(
@@ -85,6 +91,10 @@ def initialize(server):
         # executor
         with vuetify.VCol(v_show=("tab_idx == 1",), classes="flex-grow-1 pa-0 ma-0"):
             executor.get_ui()
+
+        # exodus viewer
+        with vuetify.VCol(v_show=("tab_idx == 2",), classes="flex-grow-1 pa-0 ma-0"):
+            exodus_viewer.get_ui()
 
 
 def main(server=None, **kwargs):
