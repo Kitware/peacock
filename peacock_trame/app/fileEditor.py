@@ -667,7 +667,9 @@ class InputFileEditor:
             with html.Div(
                 style="position: relative; flex: 1 1 0px; height: 100%; display: flex; flex-direction: column; padding: 5px;",
             ):
-                with html.Div(style="position: absolute; top: 0px; width: 100%; display: flex; justify-content: center;"):
+                with html.Div(
+                    style="position: absolute; top: 0px; width: 100%; display: flex; justify-content: center;",
+                ):
                     with vuetify.VHover(
                         v_slot="{ hover }",
                         v_if=("!show_mesh",),

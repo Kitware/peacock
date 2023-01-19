@@ -59,7 +59,7 @@ def initialize(server):
             if tab_idx == 2:
                 exodus_viewer.check_file()
 
-        with html.Div(style="display: flex; border-bottom: 1px solid gray",):
+        with html.Div(style="position: relative; display: flex; border-bottom: 1px solid gray",):
             html.Img(
                 src=("trame__favicon",),
                 height=50,
@@ -68,25 +68,52 @@ def initialize(server):
             )
             with vuetify.VTabs(
                 v_model=("tab_idx", 0),
-                classes="flex-grow-0",
+                style="z-index: 1;",
                 color='grey',
                 change=(on_tab_change, "[$event]"),
             ):
                 for tab_label in ['Input File', 'Execute', 'Exodus Viewer']:
                     vuetify.VTab(tab_label)
 
+            with html.Div(
+                style="position: absolute; top: 0; left: 0; height: 100%; width: 100%; display: flex; align-items: center; justify-content: center;",
+            ):
+                with html.Div(
+                    v_if=("tab_idx == 0",),
+                    style="height: 100%; width: 100%; display: flex; align-items: center; justify-content: flex-end;"
+                ):
+                    with vuetify.VBtn(
+                        click=file_editor.write_file,
+                        icon=True,
+                        style="z-index: 1;"
+                    ):
+                        vuetify.VIcon('mdi-content-save-outline')
+
+                with html.Div(
+                    style="height: 100%; width: 300px; display: flex; align-items: center; justify-content: space-between;",
+                    v_if=("tab_idx == 1",),
+                ):
+                    vuetify.VBtn(
+                        "Run",
+                        click=executor.run,
+                        disabled=("exe_running || exe_use_threading && exe_threads < 2 || exe_use_mpi && exe_processes < 2",),
+                        style="z-index: 1;",
+                    )
+                    vuetify.VBtn(
+                        "Kill",
+                        click=executor.kill,
+                        disabled=("!exe_running",),
+                        style="z-index: 1;",
+                    )
+                    vuetify.VBtn(
+                        "Clear",
+                        click=ctrl.clear_terminal,
+                        style="z-index: 1;",
+                    )
+
         # input file editor
         with vuetify.VCol(v_show=("tab_idx == 0",), classes="flex-grow-1 pa-0 ma-0"):
             file_editor.get_ui()
-        with html.Div(
-            v_show=("tab_idx == 0",),
-            style="position: absolute; top: 10px; right: 10px; display: flex;",
-        ):
-            with vuetify.VBtn(
-                click=file_editor.write_file,
-                icon=True,
-            ):
-                vuetify.VIcon('mdi-content-save-outline')
 
         # executor
         with vuetify.VCol(v_show=("tab_idx == 1",), classes="flex-grow-1 pa-0 ma-0"):

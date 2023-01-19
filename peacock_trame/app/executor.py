@@ -71,10 +71,33 @@ class Executor():
         ctrl = self._server.controller
         with html.Div(
             classes="ma-0 pa-0",
-            style="height: 100%; display: flex; flex-direction: column; align-items: center;",
+            style="position: relative; height: 100%; display: flex; flex-direction: column; align-items: center;",
         ) as executor_ui:
             with html.Div(
-                style="width: 500px;"
+                style="position: absolute; top: 0px; width: 100%; display: flex; justify-content: center;",
+            ):
+                with vuetify.VHover(
+                    v_slot="{ hover }",
+                    v_if=("!show_executor_settings",),
+                ):
+                    with vuetify.VBtn(
+                        click="show_executor_settings = true",
+                        style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 0px 0px 4px 4px; z-index: 3;",
+                    ):
+                        with html.Div(style="display: flex; flex-direction: column;"):
+                            vuetify.VIcon(
+                                'mdi-chevron-down',
+                                style="height: 15px;"
+                            )
+                            with vuetify.VSlideYTransition():
+                                vuetify.VIcon(
+                                    'mdi-cog-outline',
+                                    v_if="hover",
+                                    style="padding-top: 15px;"
+                                )
+            with html.Div(
+                style="position: relative; width: 500px;",
+                v_show=("show_executor_settings", False),
             ):
                 with vuetify.VRow(
                     dense=True,
@@ -90,7 +113,7 @@ class Executor():
                             label="Processes",
                             type="number",
                             v_model=("exe_processes", 2),
-                            rules=("[value => value > 1 || 'Must be > 1']",),
+                            rules=("[value => value > 0 || 'Must be > 0']",),
                             disabled=("!exe_use_mpi",),
                         )
 
@@ -108,32 +131,34 @@ class Executor():
                             label="Threads",
                             type="number",
                             v_model=("exe_threads", 2),
-                            rules=("[value => value > 1 || 'Must be > 1']",),
+                            rules=("[value => value > 0 || 'Must be > 0']",),
                             disabled=("!exe_use_threading",),
                         )
 
-                with vuetify.VRow(
-                    dense=True,
-                    justify="center",
+                with html.Div(
+                    style="position: absolute; bottom: 0px; width: 100%; display: flex; justify-content: center;",
                 ):
-                    vuetify.VBtn(
-                        "Run",
-                        click=self.run,
-                        disabled=("exe_running || exe_use_threading && exe_threads < 2 || exe_use_mpi && exe_processes < 2",),
-                        style="margin-right: 35px;",
-                    )
-                    vuetify.VBtn(
-                        "Kill",
-                        click=self.kill,
-                        disabled=("!exe_running",),
-                        style="margin-right: 35px;",
-                    )
-                    vuetify.VBtn(
-                        "Clear",
-                        click=ctrl.clear_terminal,
-                    )
+                    with vuetify.VHover(
+                        v_slot="{ hover }",
+                    ):
+                        with vuetify.VBtn(
+                            click="show_executor_settings = false",
+                            style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 0px 0px 4px 4px; z-index: 3;",
+                        ):
+                            with html.Div(style="display: flex; flex-direction: column;"):
+                                with vuetify.VSlideYReverseTransition():
+                                    vuetify.VIcon(
+                                        'mdi-cog-off-outline',
+                                        v_if="hover",
+                                    )
+                                vuetify.VIcon(
+                                    'mdi-chevron-up',
+                                    style="height: 15px;"
+                                )
 
-            with html.Div(classes="pa-2", style="flex: 1 1 0px; width: 100%;"):
+            with html.Div(
+                style=("{flex: '1 1 0px', width: '100%', padding: '8px', paddingTop: '0px', marginTop: show_executor_settings ? '0px' : '25px'}",),
+            ):
                 term = peacock.Terminal()
                 ctrl.write_to_terminal = term.write
                 ctrl.clear_terminal = term.clear
