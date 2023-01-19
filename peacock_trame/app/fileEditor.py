@@ -765,84 +765,90 @@ class InputFileEditor:
 
                                 # viz and color selectors
                                 with vuetify.VSlideYReverseTransition():
-                                    with html.Div(
+                                    with vuetify.VCard(
                                         v_if=cond2,
                                         style="display: flex; flex-direction: column; position: relative;",
                                     ):
-                                        if is_bc:
-                                            html.P(
-                                                label,
-                                                style="margin: 0; text-align: center;"
-                                            )
-                                        else:
-                                            with html.Div(
-                                                style="position: absolute; top: -15px; width: 100%; display: flex; justify-content: center; z-index: 1;"
-                                            ):
-                                                with vuetify.VHover(
-                                                    v_slot="{ hover }",
-                                                ):
-                                                    with vuetify.VBtn(
-                                                        text=("!hover",),
-                                                        small=True,
-                                                        click="show_" + array_name + " = false",
-                                                        style="min-height: 0px; height: auto;"
-                                                    ):
-                                                        with html.Div(style="display: flex; flex-direction: column;"):
-                                                            html.P(
-                                                                label,
-                                                                style="margin: 0;",
-                                                            )
-                                                            with vuetify.VSlideYTransition():
-                                                                vuetify.VIcon(
-                                                                    'mdi-chevron-down',
-                                                                    v_if="hover",
-                                                                    style="height: 15px; padding-top: 15px; padding-bottom: 10px;"
-                                                                )
-                                        with html.Div(
-                                            style="position: relative; display: flex; align-items: center; justify-content: space-between;",
-                                            v_for=("(value, key) in " + array_name,),
+                                        with vuetify.VCardTitle(
+                                            style="padding: 10px;"
                                         ):
-                                            with vuetify.VBtn(
-                                                icon=True,
-                                                click=(self.toggle_mesh_viz, "['" + array_name + "', key]"),
-                                            ):
-                                                vuetify.VIcon(
-                                                    'mdi-eye-outline',
-                                                    v_if="value.visible",
+                                            if is_bc:
+                                                html.P(
+                                                    label,
+                                                    style="margin: 0; text-align: center; word-break: normal; font-size: 14px;"
                                                 )
-                                                vuetify.VIcon(
-                                                    'mdi-eye-off-outline',
-                                                    v_if="!value.visible",
-                                                )
-
-                                            html.P(
-                                                "{{key}}",
-                                                style="margin: 0;"
-                                            )
-
-                                            with vuetify.VMenu(
-                                                top=True,
-                                                offset_x=10,
-                                                offset_y=10,
-                                                close_on_content_click=False,
-                                            ):
-                                                with vuetify.Template(v_slot_activator="{ on }",):
-                                                    with vuetify.VBtn(
-                                                        icon=True,
-                                                        v_on="on",
+                                            else:
+                                                with html.Div(
+                                                    style="position: absolute; left: 0; top: 10px; width: 100%; display: flex; justify-content: center; z-index: 1;"
+                                                ):
+                                                    with vuetify.VHover(
+                                                        v_slot="{ hover }",
                                                     ):
-                                                        html.Div(
-                                                            style=("{width: '10px', height: '10px', background: value.html_color}",),
-                                                        )
-                                                vuetify.VColorPicker(
-                                                    hide_canvas=True,
-                                                    hide_sliders=True,
-                                                    hide_inputs=True,
-                                                    hide_mode_switch=True,
-                                                    show_swatches=True,
-                                                    v_model=("value.rgb",),
-                                                    input=(self.on_color_change, "[$event, '" + array_name + "', key]"),
+                                                        with vuetify.VBtn(
+                                                            text=("!hover",),
+                                                            small=True,
+                                                            click="show_" + array_name + " = false",
+                                                            style="min-height: 0px; height: auto;"
+                                                        ):
+                                                            with html.Div(style="display: flex; flex-direction: column;"):
+                                                                html.P(
+                                                                    label,
+                                                                    style="margin: 0;",
+                                                                )
+                                                                with vuetify.VSlideYTransition():
+                                                                    vuetify.VIcon(
+                                                                        'mdi-chevron-down',
+                                                                        v_if="hover",
+                                                                        style="height: 15px; padding-top: 15px; padding-bottom: 10px;"
+                                                                    )
+                                        with vuetify.VCardText(
+                                            style="padding: 5px;"
+                                        ):
+                                            with html.Div(
+                                                style="position: relative; display: flex; align-items: center; justify-content: space-between;",
+                                                v_for=("(value, key) in " + array_name,),
+                                            ):
+                                                with vuetify.VBtn(
+                                                    icon=True,
+                                                    click=(self.toggle_mesh_viz, "['" + array_name + "', key]"),
+                                                ):
+                                                    vuetify.VIcon(
+                                                        'mdi-eye-outline',
+                                                        v_if="value.visible",
+                                                    )
+                                                    vuetify.VIcon(
+                                                        'mdi-eye-off-outline',
+                                                        v_if="!value.visible",
+                                                    )
+
+                                                html.P(
+                                                    "{{key}}",
+                                                    style="margin: 0;"
                                                 )
+
+                                                with vuetify.VMenu(
+                                                    top=True,
+                                                    offset_x=10,
+                                                    offset_y=10,
+                                                    close_on_content_click=False,
+                                                ):
+                                                    with vuetify.Template(v_slot_activator="{ on }",):
+                                                        with vuetify.VBtn(
+                                                            icon=True,
+                                                            v_on="on",
+                                                        ):
+                                                            html.Div(
+                                                                style=("{width: '15px', height: '15px', background: value.html_color, border: '1px solid black'}",),
+                                                            )
+                                                    vuetify.VColorPicker(
+                                                        hide_canvas=True,
+                                                        hide_sliders=True,
+                                                        hide_inputs=True,
+                                                        hide_mode_switch=True,
+                                                        show_swatches=True,
+                                                        v_model=("value.rgb",),
+                                                        input=(self.on_color_change, "[$event, '" + array_name + "', key]"),
+                                                    )
                         create_viz_editor("Blocks", "blocks",)
                         create_viz_editor("Boundaries", "boundaries")
                         create_viz_editor("Nodesets", "nodesets")
