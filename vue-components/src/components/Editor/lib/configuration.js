@@ -3,16 +3,16 @@
  * rather than a string literal.
  */
 const REGEXP_PROPERTIES = [
-    // indentation
-    'indentationRules.decreaseIndentPattern',
-    'indentationRules.increaseIndentPattern',
-    'indentationRules.indentNextLinePattern',
-    'indentationRules.unIndentedLinePattern',
-    // code folding
-    'folding.markers.start',
-    'folding.markers.end',
-    // language's "word definition"
-    'wordPattern',
+  // indentation
+  'indentationRules.decreaseIndentPattern',
+  'indentationRules.increaseIndentPattern',
+  'indentationRules.indentNextLinePattern',
+  'indentationRules.unIndentedLinePattern',
+  // code folding
+  'folding.markers.start',
+  'folding.markers.end',
+  // language's "word definition"
+  'wordPattern',
 ];
 /**
  * Configuration data is read from JSON and JSONC files, which cannot contain
@@ -25,36 +25,35 @@ const REGEXP_PROPERTIES = [
  * to be specified to the RegExp constructor.
  */
 export function rehydrateRegexps(rawConfiguration) {
-    const out = JSON.parse(rawConfiguration);
-    for (const property of REGEXP_PROPERTIES) {
-        const value = getProp(out, property);
-        if (typeof value === 'string') {
-            setProp(out, property, new RegExp(value));
-        }
+  const out = JSON.parse(rawConfiguration);
+  for (const property of REGEXP_PROPERTIES) {
+    const value = getProp(out, property);
+    if (typeof value === 'string') {
+      setProp(out, property, new RegExp(value));
     }
-    // setProp(out, 'indentationRules.increaseIndentPattern', /(| LinkedWorkItems)/);
-    return out;
+  }
+  // setProp(out, 'indentationRules.increaseIndentPattern', /(| LinkedWorkItems)/);
+  return out;
 }
 function getProp(obj, selector) {
-    const components = selector.split('.');
-    // @ts-ignore
-    return components.reduce((acc, cur) => (acc != null ? acc[cur] : null), obj);
+  const components = selector.split('.');
+  // @ts-ignore
+  return components.reduce((acc, cur) => (acc != null ? acc[cur] : null), obj);
 }
 function setProp(obj, selector, value) {
-    const components = selector.split('.');
-    const indexToSet = components.length - 1;
-    components.reduce((acc, cur, index) => {
-        if (acc == null) {
-            return acc;
-        }
-        if (index === indexToSet) {
-            // @ts-ignore
-            acc[cur] = value;
-            return null;
-        }
-        else {
-            // @ts-ignore
-            return acc[cur];
-        }
-    }, obj);
+  const components = selector.split('.');
+  const indexToSet = components.length - 1;
+  components.reduce((acc, cur, index) => {
+    if (acc == null) {
+      return acc;
+    }
+    if (index === indexToSet) {
+      // @ts-ignore
+      acc[cur] = value;
+      return null;
+    } else {
+      // @ts-ignore
+      return acc[cur];
+    }
+  }, obj);
 }

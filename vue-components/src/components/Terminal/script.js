@@ -1,9 +1,9 @@
-import "xterm/css/xterm.css";
+import 'xterm/css/xterm.css';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 
 export default {
-  name: "Terminal",
+  name: 'Terminal',
   methods: {
     write(string) {
       this.term.writeln(string);
@@ -17,7 +17,7 @@ export default {
       this.fitAddon.fit();
     };
 
-    this.resizeObserver = new ResizeObserver(this.onResize)
+    this.resizeObserver = new ResizeObserver(this.onResize);
 
     this.term = new Terminal();
     this.fitAddon = new FitAddon();
