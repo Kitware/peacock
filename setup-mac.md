@@ -44,13 +44,27 @@ mamba activate moose
 pip install .
 ```
 
+## Build/Install ParaView
+
+Mamba by default will run with Python 3.10. ParaView needs to be built with the same version of Python.
+
+```bash
+git clone --recursive https://gitlab.kitware.com/paraview/paraview.git
+mkdir build
+cd build
+ccmake -GNinja ../paraview
+# Make sure Python 3.10 is used
+ninja
+export PYTHONPATH=$PWD/lib/python3.10/site-packages
+```
+
 ## Testing an example
 
 ```bash
 mamba activate moose
-cd moose/python
+cd moose
 export MOOSE_DIR=$PWD
-cd ../examples/ex08_materials
+cd ./examples/ex08_materials
 make
 peacock-trame -I ./ex08.i -E ex08-opt
 ```

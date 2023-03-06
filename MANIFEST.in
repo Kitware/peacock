@@ -1,1 +1,2 @@
 graft peacock_trame/module/serve
+include peacock_trame/app/logos/peacock_logo.ico
