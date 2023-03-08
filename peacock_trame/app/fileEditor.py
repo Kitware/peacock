@@ -1,7 +1,6 @@
 import os
 import sys
 from pyaml import yaml
-from bisect import insort
 import difflib
 
 from trame.widgets import vuetify, html, simput, vtk, paraview
@@ -146,7 +145,11 @@ class InputFileEditor:
             if block.included:
                 self.add_block(block)
             else:
-                insort(state.unused_blocks, {'name': block.name, 'path': block.path}, key=lambda e: e['name'])
+                # add to unused blocks, sorted by name
+                self._insort_by_name(state.unused_blocks, {
+                    'name': block.name,
+                    'path': block.path,
+                })
 
         return True
 
@@ -228,7 +231,7 @@ class InputFileEditor:
         parent = block_info.parent
         if parent.path == '/':  # no parent
             # add block to tree sorted by name
-            insort(state.block_tree, block_entry, key=lambda e: e['name'])
+            self._insort_by_name(state.block_tree, block_entry)
         else:
             parent_entry = self.get_block_tree_entry(parent.path)
             if block_info.included:
@@ -1100,6 +1103,18 @@ class InputFileEditor:
 
         return view if USE_PARAVIEW else renderWindow
 
+    def _insort_by_name(self, dict_list, entry):
+        # adds dictionary to list of dictionaries, sorted by 'name' key
+        if len(dict_list) == 0:
+            dict_list[:] = [entry]
+            return
+
+        for idx, d in enumerate(dict_list):
+            if entry['name'] < d['name']:
+                dict_list.insert(idx, entry)
+                return
+
+        dict_list.append(entry)
 
 class BlockFactory(ObjectFactory):
     def __init__(self):

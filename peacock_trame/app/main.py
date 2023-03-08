@@ -125,6 +125,12 @@ def initialize(server):
 
 
 def main(server=None, **kwargs):
+    # Pop LD_LIBRARY_PATH env variable
+    # This caused errors when running the Moose executable on Linux
+    # This variable points to paraview/lib which might override our venv/lib
+    # These conflicting library files seems to cause the error
+    os.environ.pop('LD_LIBRARY_PATH')
+
     # Get or create server
     if server is None:
         server = get_server()
