@@ -1,7 +1,13 @@
 from trame.widgets import vuetify, html
 from trame.app import asynchronous
 
-from paraview import simple
+try:
+    from paraview import simple
+except ModuleNotFoundError:
+    # The Exodus Viewer is disabled when ParaView is not installed
+    # So, no extra handling is needed in this file
+    # But, this file is still imported, so this try/catch is required
+    pass
 
 import asyncio
 

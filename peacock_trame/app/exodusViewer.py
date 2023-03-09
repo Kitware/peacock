@@ -3,11 +3,14 @@ import numpy as np
 
 from trame.widgets import vuetify, html, paraview
 
-from paraview import simple
-
 from .core.common.utils import throttled_run
-
 from .core.exodusViewer.time_step import TimeStepController
+
+try:
+    from paraview import simple
+    PARAVIEW_INSTALLED = True
+except ModuleNotFoundError:
+    PARAVIEW_INSTALLED = False
 
 
 CHECKER_BACKGROUND = "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgYGCQwoKxgqGgcJA5h3yFAAs8BRWVSwooAAAAAElFTkSuQmCC) repeat"
@@ -15,6 +18,9 @@ CHECKER_BACKGROUND = "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAK
 
 class ExodusViewer:
     def __init__(self, server):
+        if not PARAVIEW_INSTALLED:
+            return
+
         self._server = server
         self.state = server.state
         self.ctrl = server.controller
@@ -32,6 +38,27 @@ class ExodusViewer:
         self.time_ctrl = TimeStepController(server)
 
     def get_ui(self):
+        if not PARAVIEW_INSTALLED:
+            # This page cannot work with VTK alone, for now
+            with html.Div(
+                style="""
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    width: 100%;
+                    height: 100%;
+                """,
+            ) as container:
+                html.H1("This page requires ParaView.")
+                html.A(
+                    "https://github.com/kitware/peacock#running-the-software",
+                    href="https://github.com/kitware/peacock#running-the-software",
+                    target="_blank",
+                )
+
+            return container
+
         with vuetify.VCol(
             classes="fill-height ma-0 pa-0 d-flex",
         ) as container:
@@ -329,6 +356,9 @@ class ExodusViewer:
         self.ctrl.update_exodus_view()
 
     def check_file(self):
+        if not PARAVIEW_INSTALLED:
+            return False
+
         state = self.state
         if state.ex2_exists:
             return
