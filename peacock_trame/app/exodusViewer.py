@@ -7,6 +7,8 @@ from paraview import simple
 
 from .core.common.utils import throttled_run
 
+from .core.exodusViewer.time_step import TimeStepController
+
 
 CHECKER_BACKGROUND = "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAGElEQVQYlWNgYGCQwoKxgqGgcJA5h3yFAAs8BRWVSwooAAAAAElFTkSuQmCC) repeat"
 
@@ -14,6 +16,8 @@ CHECKER_BACKGROUND = "url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAK
 class ExodusViewer:
     def __init__(self, server):
         self._server = server
+        self.state = server.state
+        self.ctrl = server.controller
 
         state = server.state
         input_file = state.input_file
@@ -25,9 +29,9 @@ class ExodusViewer:
         self.clip = None
         self.contour = None
 
-    def get_ui(self):
-        ctrl = self._server.controller
+        self.time_ctrl = TimeStepController(server)
 
+    def get_ui(self):
         with vuetify.VCol(
             classes="fill-height ma-0 pa-0 d-flex",
         ) as container:
@@ -37,7 +41,7 @@ class ExodusViewer:
                 with html.Div(
                     style="display: flex; align-items: center; justify-content: space-between;"
                 ):
-                    html.H3(os.path.split(self._server.state.ex2_file)[1])
+                    html.H3(os.path.split(self.state.ex2_file)[1])
                     vuetify.VAlert(
                         "File does not exists.",
                         v_if=("!ex2_exists",),
@@ -145,7 +149,13 @@ class ExodusViewer:
                 style="flex-grow: 1; position: relative;",
             ):
                 renderView = paraview.VtkRemoteView(self.update_render_window(), ref="exodus_view")
-                ctrl.update_exodus_view = renderView.update
+                self.ctrl.update_exodus_view = renderView.update
+
+                # ex2 timestep controller
+                with html.Div(
+                    style="position: absolute; top: 0px; left: 0px; display: flex; z-index: 1;",
+                ):
+                    self.time_ctrl.get_ui()
 
                 # block, boundary, nodeset selector
                 with html.Div(
@@ -268,14 +278,14 @@ class ExodusViewer:
 
     def on_active_rep_type(self, rep_type):
         self.active_rep.Representation = rep_type
-        self._server.controller.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def toggle_axes(self, show):
         self.active_view.AxesGrid.Visibility = show
-        self._server.controller.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def toggle_mesh_viz(self, viz_type, viz_id):
-        state = self._server.state
+        state = self.state
 
         info = state[viz_type][viz_id]
         info['visible'] = not info['visible']
@@ -289,10 +299,10 @@ class ExodusViewer:
             block_selectors.append(entry)
         self.active_rep.BlockSelectors = block_selectors
 
-        self._server.controller.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def on_color_change(self, rgba_obj, viz_type, viz_id):
-        state = self._server.state
+        state = self.state
 
         info = state[viz_type][viz_id]
         rgba = list(rgba_obj.values())
@@ -316,10 +326,10 @@ class ExodusViewer:
 
         state.dirty(viz_type)
         self.active_rep.BlockColors = block_colors
-        self._server.controller.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def check_file(self):
-        state = self._server.state
+        state = self.state
         if state.ex2_exists:
             return
 
@@ -329,9 +339,6 @@ class ExodusViewer:
             self.update_render_window()
 
     def on_active_variable(self, var):
-        server = self._server
-        state, ctrl = server.state, server.controller
-
         simple.ColorBy(self.active_rep, ('POINTS', var))
         simple.HideScalarBarIfNotNeeded(self.active_lut, self.render_view)
         if var is not None:
@@ -341,10 +348,10 @@ class ExodusViewer:
             self.active_lut = lut
             if self.contour:
                 self.contour.ContourBy = ['POINTS', var]
-                if state.auto_gen_contours:
-                    state.active_variable = var
-                    self.spread_contour_levels(state.num_contours)
-        ctrl.update_exodus_view()
+                if self.state.auto_gen_contours:
+                    self.state.active_variable = var
+                    self.spread_contour_levels(self.state.num_contours)
+        self.ctrl.update_exodus_view()
 
     def _add_source(self, source):
         simple.Hide(self.active_source, self.render_view)
@@ -354,7 +361,7 @@ class ExodusViewer:
         rep.BlockColors = self.active_rep.BlockColors
         rep.Representation = self.active_rep.Representation
 
-        active_var = self._server.state.active_variable
+        active_var = self.state.active_variable
         simple.ColorBy(rep, ('POINTS', active_var))
         simple.HideScalarBarIfNotNeeded(self.active_lut, self.render_view)
         rep.SetScalarBarVisibility(self.render_view, True)
@@ -378,7 +385,7 @@ class ExodusViewer:
             rep.BlockColors = self.active_rep.BlockColors
             rep.Representation = self.active_rep.Representation
 
-            active_var = self._server.state.active_variable
+            active_var = self.state.active_variable
             simple.ColorBy(rep, ('POINTS', active_var))
             simple.HideScalarBarIfNotNeeded(self.active_lut, self.render_view)
             rep.SetScalarBarVisibility(self.render_view, True)
@@ -397,14 +404,11 @@ class ExodusViewer:
             self._remove_source(self.clip)
 
         # self.clip.UpdatePipeline()
-        self._server.controller.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def on_clip_direction(self, direction):
         if self.clip is None:
             return
-
-        server = self._server
-        state, ctrl = server.state, server.controller
 
         idx = ['X', 'Y', 'Z'].index(direction)
         normal = [0.0, 0.0, 0.0]
@@ -412,11 +416,11 @@ class ExodusViewer:
         self.clip.ClipType.Normal = normal
 
         clip_min, clip_max = self.bounds[(idx * 2):(idx * 2 + 2)]
-        state.clip_min = clip_min
-        state.clip_max = clip_max
-        state.clip_origin = clip_min + (clip_max - clip_min) / 2
+        self.state.clip_min = clip_min
+        self.state.clip_max = clip_max
+        self.state.clip_origin = clip_min + (clip_max - clip_min) / 2
 
-        ctrl.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def on_clip_origin(self, axis_origin):
         if self.clip is None:
@@ -429,62 +433,50 @@ class ExodusViewer:
             return
 
         self.clip.Invert = not self.clip.Invert
-        self._server.controller.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def _move_clip(self, axis_origin):
-        server = self._server
-        state, ctrl = server.state, server.controller
-
         origin = self.clip.ClipType.Origin
-        idx = ['X', 'Y', 'Z'].index(state.clip_direction)
+        idx = ['X', 'Y', 'Z'].index(self.state.clip_direction)
         origin[idx] = axis_origin
         self.clip.ClipType.Origin = origin
 
-        ctrl.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def toggle_contours(self, show):
-        server = self._server
-        state, ctrl = server.state, server.controller
-
         if self.contour is None:
             self.contour = simple.Contour(Input=self.ex2)
 
         if show:
-            self.contour.ContourBy = ['POINTS', state.active_variable]
-            self.contour.Isosurfaces = state.contour_levels
+            self.contour.ContourBy = ['POINTS', self.state.active_variable]
+            self.contour.Isosurfaces = self.state.contour_levels
             self._add_source(self.contour)
         else:
             self._remove_source(self.contour)
 
-        ctrl.update_exodus_view()
+        self.ctrl.update_exodus_view()
 
     def spread_contour_levels(self, num_contours):
-        server = self._server
-        state, ctrl = server.state, server.controller
-
-        var_min, var_max = self.data_ranges[state.active_variable]
+        var_min, var_max = self.data_ranges[self.state.active_variable]
         levels = list(np.linspace(var_min, var_max, int(num_contours)))
-        state.contour_levels = levels
-        state.dirty('contour_levels')
+        self.state.contour_levels = levels
+        self.state.dirty('contour_levels')
 
         if self.contour:
             self.contour.Isosurfaces = levels
-            ctrl.update_exodus_view()
+            self.ctrl.update_exodus_view()
 
     def on_auto_gen_contours(self, auto_gen):
         if auto_gen:
-            self.spread_contour_levels(self._server.state.num_contours)
+            self.spread_contour_levels(self.state.num_contours)
 
     def on_num_contours(self, num_contours):
         if num_contours == '':
             return
 
-        server = self._server
-        state, ctrl = server.state, server.controller
-
         num_contours = int(num_contours)
 
-        if state.auto_gen_contours:
+        if self.state.auto_gen_contours:
             self.spread_contour_levels(num_contours)
         else:
             levels = state.contour_levels
@@ -493,31 +485,28 @@ class ExodusViewer:
             else:
                 levels = levels + [levels[-1]] * (num_contours - len(levels))
 
-            state.contour_levels = levels
+            self.state.contour_levels = levels
 
             if self.contour:
                 self.contour.Isosurfaces = levels
-                ctrl.update_exodus_view()
+                self.ctrl.update_exodus_view()
 
     def on_contour_level(self, idx, level):
-        server = self._server
-        state, ctrl = server.state, server.controller
-
-        state.contour_levels[idx] = float(level)
-        state.dirty('contour_levels')
+        self.state.contour_levels[idx] = float(level)
+        self.state.dirty('contour_levels')
 
         if self.contour:
-            self.contour.Isosurfaces = state.contour_levels
-            ctrl.update_exodus_view()
+            self.contour.Isosurfaces = self.state.contour_levels
+            self.ctrl.update_exodus_view()
 
     def add_contour_level(self):
-        state = self._server.state
+        state = self.state
         state.contour_levels.append(state.contour_levels[-1])
         state.num_contours += 1
         state.dirty('contour_levels')
 
     def update_render_window(self):
-        state = self._server.state
+        state = self.state
 
         if self.render_view is None:
             view = simple.CreateView('RenderView')
@@ -599,6 +588,10 @@ class ExodusViewer:
             self.active_rep = rep
             self.active_lut = lut
             self.active_view = view
+
+            # time step controller
+            self.time_ctrl.set_ex2(ex2)
+            self.time_ctrl.set_render_function(self.ctrl.update_exodus_view)
 
             self.spread_contour_levels(state.num_contours)
 
