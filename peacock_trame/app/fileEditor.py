@@ -24,9 +24,14 @@ from peacock_trame.widgets import peacock
 
 from .core.common.PeacockException import BadExecutableException
 from .core.common.utils import debounced_run
+
 # add moose/python to sys path
 moose_dir = os.environ.get("MOOSE_DIR", None)
+if moose_dir is None:
+    print("The 'MOOSE_DIR' environmental variable must be set and point to the base dir for moose.")
+    sys.exit(0)
 sys.path.append(os.path.join(moose_dir, 'python'))
+
 from .core.input.InputTree import InputTree  # noqa
 from .core.input.ExecutableInfo import ExecutableInfo  # noqa
 from .core.common import ExeLauncher  # noqa
