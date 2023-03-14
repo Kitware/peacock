@@ -13,8 +13,7 @@
     "vscode-textmate": "^5.1.1",
     "vscode-ws-jsonrpc": "^0.2.0",
     "vue": "2.6.11",
-    "xterm": "^5.0.0",
-    "xterm-addon-fit": "^0.6.0"
+    "xterm": "^5.0.0"
   },
   "scripts": {
     "serve:CustomWidget": "vue-cli-service serve src/tests/CustomWidget/main.js",

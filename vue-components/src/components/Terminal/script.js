@@ -1,6 +1,5 @@
 import 'xterm/css/xterm.css';
 import { Terminal } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
 
 export default {
   name: 'Terminal',
@@ -14,17 +13,16 @@ export default {
   },
   mounted() {
     this.onResize = () => {
-      this.fitAddon.fit();
+      let rowHeight = 17;
+      let numRows = Math.floor(this.$el.clientHeight / rowHeight);
+      this.term.resize(this.term.cols, numRows);
     };
 
     this.resizeObserver = new ResizeObserver(this.onResize);
 
     this.term = new Terminal();
-    this.fitAddon = new FitAddon();
-    this.term.loadAddon(this.fitAddon);
     this.term.open(this.$el);
-    this.fitAddon.fit();
-    this.resizeObserver.observe(this.term.element);
+    this.resizeObserver.observe(this.$el);
   },
   beforeDestroy() {
     if (this.resizeObserver) {

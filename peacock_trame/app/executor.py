@@ -71,7 +71,7 @@ class Executor():
         ctrl = self._server.controller
         with html.Div(
             classes="ma-0 pa-0",
-            style="position: relative; height: 100%; display: flex; flex-direction: column; align-items: center;",
+            style="position: relative; height: 100%; display: flex; flex-direction: column; align-items: center; max-height: calc(100vh - 51px);",
         ) as executor_ui:
             with html.Div(
                 style="position: absolute; top: 0px; width: 100%; display: flex; justify-content: center;",
@@ -82,7 +82,14 @@ class Executor():
                 ):
                     with vuetify.VBtn(
                         click="show_executor_settings = true",
-                        style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 0px 0px 4px 4px; z-index: 3;",
+                        style="""
+                            min-width: 50px;
+                            min-height: 0px;
+                            height: auto;
+                            padding: 2px;
+                            border-radius: 0px 0px 4px 4px;
+                            z-index: 3;
+                        """,
                     ):
                         with html.Div(style="display: flex; flex-direction: column;"):
                             vuetify.VIcon(
@@ -157,7 +164,13 @@ class Executor():
                                 )
 
             with html.Div(
-                style=("{flex: '1 1 0px', width: '100%', padding: '8px', paddingTop: '0px', marginTop: show_executor_settings ? '0px' : '25px'}",),
+                style=("""{
+                    height: show_executor_settings ? 'calc(100% - 150px)' : 'calc(100% - 8px)',
+                    width: '100%',
+                    padding: '8px',
+                    paddingTop: '0px',
+                    marginTop: show_executor_settings ? '0px' : '25px'
+                }""",),
             ):
                 term = peacock.Terminal()
                 ctrl.write_to_terminal = term.write
