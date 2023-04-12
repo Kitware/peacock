@@ -1,5 +1,5 @@
-from trame.widgets import vuetify, html
 from trame.app import asynchronous
+from trame.widgets import html, vuetify
 
 try:
     from paraview import simple
@@ -28,17 +28,17 @@ class TimeStepController:
         self._ex2 = None
         self._playing = False
 
-        self._set_state_var('playing', False)
-        self._set_state_var('curr_frame', 1)
-        self._set_state_var('num_frames', 1)
+        self._set_state_var("playing", False)
+        self._set_state_var("curr_frame", 1)
+        self._set_state_var("num_frames", 1)
 
     def set_ex2(self, ex2):
         animation_scene = simple.GetAnimationScene()
         animation_scene.GoToFirst()
         self._curr_frame = 1
         self._num_frames = animation_scene.NumberOfFrames
-        self._set_state_var('curr_frame', 1)
-        self._set_state_var('num_frames', animation_scene.NumberOfFrames)
+        self._set_state_var("curr_frame", 1)
+        self._set_state_var("num_frames", animation_scene.NumberOfFrames)
         self._animation_scene = animation_scene
 
     def set_render_function(self, func):
@@ -52,9 +52,13 @@ class TimeStepController:
                 style="display: flex; justify-content: center;",
             ):
                 html.P(
-                    "{{" + self._get_state_var_name('curr_frame') + "}}" + 
-                    " / " +
-                    "{{" + self._get_state_var_name('num_frames') + "}}",
+                    "{{"
+                    + self._get_state_var_name("curr_frame")
+                    + "}}"
+                    + " / "
+                    + "{{"
+                    + self._get_state_var_name("num_frames")
+                    + "}}",
                     style="margin: 0;",
                 )
             with html.Div(
@@ -65,14 +69,14 @@ class TimeStepController:
                     click=self._first,
                     icon=True,
                 ):
-                    vuetify.VIcon('mdi-step-backward-2')
+                    vuetify.VIcon("mdi-step-backward-2")
 
                 # prev frame btn
                 with vuetify.VBtn(
                     click=self._prev,
                     icon=True,
                 ):
-                    vuetify.VIcon('mdi-step-backward')
+                    vuetify.VIcon("mdi-step-backward")
 
                 # play btn
                 with vuetify.VBtn(
@@ -80,56 +84,56 @@ class TimeStepController:
                     icon=True,
                     v_if=f"!{self._get_state_var_name('playing')}",
                 ):
-                    vuetify.VIcon('mdi-play')
+                    vuetify.VIcon("mdi-play")
 
                 # pause btn
                 with vuetify.VBtn(
                     click=self._stop,
                     icon=True,
-                    v_if=self._get_state_var_name('playing'),
+                    v_if=self._get_state_var_name("playing"),
                 ):
-                    vuetify.VIcon('mdi-pause')
+                    vuetify.VIcon("mdi-pause")
 
                 # next frame btn
                 with vuetify.VBtn(
                     click=self._next,
                     icon=True,
                 ):
-                    vuetify.VIcon('mdi-step-forward')
+                    vuetify.VIcon("mdi-step-forward")
 
                 # last frame btn
                 with vuetify.VBtn(
                     click=self._last,
                     icon=True,
                 ):
-                    vuetify.VIcon('mdi-step-forward-2')
+                    vuetify.VIcon("mdi-step-forward-2")
 
             return container
 
     def _first(self):
         self._curr_frame = 1
-        self._set_state_var('curr_frame', 1)
+        self._set_state_var("curr_frame", 1)
 
         self._animation_scene.GoToFirst()
         self._render_function()
 
     def _prev(self):
         self._curr_frame = max(1, self._curr_frame - 1)
-        self._set_state_var('curr_frame', self._curr_frame)
+        self._set_state_var("curr_frame", self._curr_frame)
 
         self._animation_scene.GoToPrevious()
         self._render_function()
 
     def _next(self):
         self._curr_frame = min(self._curr_frame + 1, self._num_frames)
-        self._set_state_var('curr_frame', self._curr_frame)
+        self._set_state_var("curr_frame", self._curr_frame)
 
         self._animation_scene.GoToNext()
         self._render_function()
 
     def _last(self):
         self._curr_frame = self._num_frames
-        self._set_state_var('curr_frame', self._curr_frame)
+        self._set_state_var("curr_frame", self._curr_frame)
 
         self._animation_scene.GoToLast()
         self._render_function()
@@ -143,7 +147,7 @@ class TimeStepController:
             await asyncio.sleep(self.frame_step_time)
 
         state = self._state
-        self._set_state_var('playing', True)
+        self._set_state_var("playing", True)
         self._playing = True
         state.flush()
         await asyncio.sleep(0)
@@ -154,13 +158,13 @@ class TimeStepController:
 
             if self._curr_frame == self._num_frames:
                 self._playing = False
-                self._set_state_var('playing', False)
+                self._set_state_var("playing", False)
                 state.flush()
                 await asyncio.sleep(0)
 
     def _stop(self):
         self._playing = False
-        self._set_state_var('playing', False)
+        self._set_state_var("playing", False)
 
     def _set_state_var(self, var, val):
         # prefix state vars with id
@@ -170,4 +174,3 @@ class TimeStepController:
 
     def _get_state_var_name(self, var):
         return f"media_ctrl_{self._id}_{var}"
-

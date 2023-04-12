@@ -1,6 +1,5 @@
 import asyncio
 
-
 DEBOUNCE_TASKS = {}
 THROTTLE_VALS = {}
 THROTTLE_TASKS = {}
@@ -15,10 +14,11 @@ def debounced_run(callback, args=[], delay=0):
         await asyncio.sleep(delay)
         callback(*args)
         del DEBOUNCE_TASKS[func_name]
+
     DEBOUNCE_TASKS[func_name] = asyncio.create_task(task())
 
 
-def throttled_run(callback, args=[], rate=float('inf')):
+def throttled_run(callback, args=[], rate=float("inf")):
     func_name = callback.__qualname__
 
     THROTTLE_VALS[func_name] = args

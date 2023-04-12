@@ -1,21 +1,17 @@
 import os
 
-from trame.app import get_server, dev
-from trame.ui.vuetify import VAppLayout
-from trame.widgets import vuetify, html, simput
-from trame_simput import get_simput_manager
+from trame.app import dev, get_server
 from trame.assets.local import LocalFileManager
+from trame.ui.vuetify import VAppLayout
+from trame.widgets import html, simput, vuetify
+from trame_simput import get_simput_manager
 
 from peacock_trame import module
-from .core.input.LanguageServer import LanguageServerManager
 
-from .fileEditor import (
-    InputFileEditor,
-    BlockFactory,
-    BlockAdapter,
-)
+from .core.input.LanguageServer import LanguageServerManager
 from .executor import Executor
 from .exodusViewer import ExodusViewer
+from .fileEditor import BlockAdapter, BlockFactory, InputFileEditor
 
 
 def _reload():
@@ -51,7 +47,6 @@ def initialize(server):
         LanguageServerManager(server)
 
     with VAppLayout(server) as layout:
-
         layout.root = simput_widget
 
         def on_tab_change(tab_idx):
@@ -59,7 +54,9 @@ def initialize(server):
             if tab_idx == 2:
                 exodus_viewer.check_file()
 
-        with html.Div(style="position: relative; display: flex; border-bottom: 1px solid gray",):
+        with html.Div(
+            style="position: relative; display: flex; border-bottom: 1px solid gray",
+        ):
             html.Img(
                 src=("trame__favicon",),
                 height=50,
@@ -69,10 +66,10 @@ def initialize(server):
             with vuetify.VTabs(
                 v_model=("tab_idx", 0),
                 style="z-index: 1;",
-                color='grey',
+                color="grey",
                 change=(on_tab_change, "[$event]"),
             ):
-                for tab_label in ['Input File', 'Execute', 'Exodus Viewer']:
+                for tab_label in ["Input File", "Execute", "Exodus Viewer"]:
                     vuetify.VTab(tab_label)
 
             with html.Div(
@@ -80,14 +77,12 @@ def initialize(server):
             ):
                 with html.Div(
                     v_if=("tab_idx == 0",),
-                    style="height: 100%; width: 100%; display: flex; align-items: center; justify-content: flex-end;"
+                    style="height: 100%; width: 100%; display: flex; align-items: center; justify-content: flex-end;",
                 ):
                     with vuetify.VBtn(
-                        click=file_editor.write_file,
-                        icon=True,
-                        style="z-index: 1;"
+                        click=file_editor.write_file, icon=True, style="z-index: 1;"
                     ):
-                        vuetify.VIcon('mdi-content-save-outline')
+                        vuetify.VIcon("mdi-content-save-outline")
 
                 with html.Div(
                     style="height: 100%; width: 300px; display: flex; align-items: center; justify-content: space-between;",
@@ -96,7 +91,9 @@ def initialize(server):
                     vuetify.VBtn(
                         "Run",
                         click=executor.run,
-                        disabled=("exe_running || exe_use_threading && exe_threads < 2 || exe_use_mpi && exe_processes < 2",),
+                        disabled=(
+                            "exe_running || exe_use_threading && exe_threads < 2 || exe_use_mpi && exe_processes < 2",
+                        ),
                         style="z-index: 1;",
                     )
                     vuetify.VBtn(
@@ -129,8 +126,8 @@ def main(server=None, **kwargs):
     # This caused errors when running the Moose executable on Linux
     # This variable points to paraview/lib which might override our venv/lib
     # These conflicting library files seems to cause the error
-    if 'LD_LIBRARY_PATH' in os.environ:
-        os.environ.pop('LD_LIBRARY_PATH')
+    if "LD_LIBRARY_PATH" in os.environ:
+        os.environ.pop("LD_LIBRARY_PATH")
 
     # Get or create server
     if server is None:
@@ -143,11 +140,15 @@ def main(server=None, **kwargs):
     parser = server.cli
     parser.add_argument("-I", "--input", help="Input file (.i)")
     parser.add_argument("-E", "--exe", help="Executable")
-    parser.add_argument("-L", "--lang_server", help="Path to language server executable")
+    parser.add_argument(
+        "-L", "--lang_server", help="Path to language server executable"
+    )
     (args, _unknown) = parser.parse_known_args()
     state = server.state
     if args.input is None or args.exe is None:
-        print("Usage: \n\tpeacock-trame -I /path/to/input/file -E /path/to/executable [options]")
+        print(
+            "Usage: \n\tpeacock-trame -I /path/to/input/file -E /path/to/executable [options]"
+        )
         return
     state.input_file = os.path.abspath(args.input)
     state.executable = os.path.abspath(args.exe)

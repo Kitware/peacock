@@ -1,4 +1,5 @@
 from trame_client.widgets.core import AbstractElement
+
 from .. import module
 
 
@@ -29,14 +30,8 @@ class Terminal(HtmlElement):
 
     def __init__(self, **kwargs):
         Terminal._next_id += 1
-        self._ref = kwargs.get('ref', f"terminal_{Terminal._next_id}")
-        super().__init__(
-            "terminal",
-            **{
-                **kwargs,
-                'ref': self._ref
-            }
-        )
+        self._ref = kwargs.get("ref", f"terminal_{Terminal._next_id}")
+        super().__init__("terminal", **{**kwargs, "ref": self._ref})
 
     def write(self, string):
         self.server.js_call(self._ref, "write", string)

@@ -1,13 +1,14 @@
 import os
-import numpy as np
 
-from trame.widgets import vuetify, html, paraview
+import numpy as np
+from trame.widgets import html, paraview, vuetify
 
 from .core.common.utils import throttled_run
 from .core.exodusViewer.time_step import TimeStepController
 
 try:
     from paraview import simple
+
     PARAVIEW_INSTALLED = True
 except ModuleNotFoundError:
     PARAVIEW_INSTALLED = False
@@ -27,7 +28,7 @@ class ExodusViewer:
 
         state = server.state
         input_file = state.input_file
-        state.ex2_file = os.path.splitext(input_file)[0] + '_out.e'
+        state.ex2_file = os.path.splitext(input_file)[0] + "_out.e"
         state.ex2_exists = False
         state.contour_levels = []
 
@@ -80,7 +81,7 @@ class ExodusViewer:
                 vuetify.VSelect(
                     v_model=("active_rep_type", "Surface"),
                     label="Representation",
-                    items=(['Surface', 'Surface With Edges', 'Wireframe', 'Points'],),
+                    items=(["Surface", "Surface With Edges", "Wireframe", "Points"],),
                     change=(self.on_active_rep_type, "[$event]"),
                 )
 
@@ -104,12 +105,10 @@ class ExodusViewer:
                     change=(self.toggle_clip, "[$event]"),
                 )
 
-                with html.Div(
-                    style="display: flex;"
-                ):
+                with html.Div(style="display: flex;"):
                     vuetify.VSelect(
-                        v_model=("clip_direction", 'X'),
-                        items=(['X', 'Y', 'Z'],),
+                        v_model=("clip_direction", "X"),
+                        items=(["X", "Y", "Z"],),
                         change=(self.on_clip_direction, "[$event]"),
                         style="padding: 0; margin: 0; flex-grow: 0; width: 50px;",
                     )
@@ -127,7 +126,7 @@ class ExodusViewer:
                         click=self.flip_clip,
                         icon=True,
                     ):
-                        vuetify.VIcon('mdi-flip-horizontal')
+                        vuetify.VIcon("mdi-flip-horizontal")
 
                 vuetify.VSwitch(
                     v_model=("show_contours", False),
@@ -159,11 +158,9 @@ class ExodusViewer:
                         icon=True,
                         disabled=("auto_gen_contours",),
                     ):
-                        vuetify.VIcon('mdi-arrow-expand-vertical')
+                        vuetify.VIcon("mdi-arrow-expand-vertical")
 
-                with html.Div(
-                    style="overflow: auto; max-height: 300px;"
-                ):
+                with html.Div(style="overflow: auto; max-height: 300px;"):
                     vuetify.VTextField(
                         v_for="idx in contour_levels.length",
                         v_model="contour_levels[idx - 1]",
@@ -175,7 +172,9 @@ class ExodusViewer:
             with html.Div(
                 style="flex-grow: 1; position: relative;",
             ):
-                renderView = paraview.VtkRemoteView(self.update_render_window(), interactive_ratio=1, ref="exodus_view")
+                renderView = paraview.VtkRemoteView(
+                    self.update_render_window(), interactive_ratio=1, ref="exodus_view"
+                )
                 self.ctrl.update_exodus_view = renderView.update
 
                 # ex2 timestep controller
@@ -188,8 +187,8 @@ class ExodusViewer:
                 with html.Div(
                     style="position: absolute; bottom: 0px; left: 0px; display: flex; z-index: 1;",
                 ):
-                    def create_viz_editor(label, array_name):
 
+                    def create_viz_editor(label, array_name):
                         with html.Div(
                             style="position: relative; display: flex; align-items: flex-end; justify-content: center; width: 150px;",
                         ):
@@ -205,14 +204,16 @@ class ExodusViewer:
                                         depressed=True,
                                         click="show_" + array_name + " = true",
                                         style="border-radius: 4px 4px 0px 0px; height: auto; min-height: 0px; width: 80%;",
-                                        v_show='!show_' + array_name,
+                                        v_show="!show_" + array_name,
                                     ):
-                                        with html.Div(style="display: flex; flex-direction: column;"):
+                                        with html.Div(
+                                            style="display: flex; flex-direction: column;"
+                                        ):
                                             with vuetify.VSlideYReverseTransition():
                                                 vuetify.VIcon(
-                                                    'mdi-chevron-up',
+                                                    "mdi-chevron-up",
                                                     v_if="hover",
-                                                    style="height: 15px; padding: 5px;"
+                                                    style="height: 15px; padding: 5px;",
                                                 )
                                             html.P(
                                                 label,
@@ -235,44 +236,46 @@ class ExodusViewer:
                                                 with vuetify.VBtn(
                                                     text=("!hover",),
                                                     small=True,
-                                                    click="show_" + array_name + " = false",
-                                                    style="min-height: 0px; height: auto;"
+                                                    click="show_"
+                                                    + array_name
+                                                    + " = false",
+                                                    style="min-height: 0px; height: auto;",
                                                 ):
-                                                    with html.Div(style="display: flex; flex-direction: column;"):
+                                                    with html.Div(
+                                                        style="display: flex; flex-direction: column;"
+                                                    ):
                                                         html.P(
                                                             label,
                                                             style="margin: 0;",
                                                         )
                                                         with vuetify.VSlideYTransition():
                                                             vuetify.VIcon(
-                                                                'mdi-chevron-down',
+                                                                "mdi-chevron-down",
                                                                 v_if="hover",
-                                                                style="height: 15px; padding-top: 15px; padding-bottom: 10px;"
+                                                                style="height: 15px; padding-top: 15px; padding-bottom: 10px;",
                                                             )
-                                    with vuetify.VCardText(
-                                            style="padding: 5px;"
-                                    ):
+                                    with vuetify.VCardText(style="padding: 5px;"):
                                         with html.Div(
                                             style="position: relative; display: flex; align-items: center; justify-content: space-between;",
                                             v_for=("(value, key) in " + array_name,),
                                         ):
                                             with vuetify.VBtn(
                                                 icon=True,
-                                                click=(self.toggle_mesh_viz, "['" + array_name + "', key]"),
+                                                click=(
+                                                    self.toggle_mesh_viz,
+                                                    "['" + array_name + "', key]",
+                                                ),
                                             ):
                                                 vuetify.VIcon(
-                                                    'mdi-eye-outline',
+                                                    "mdi-eye-outline",
                                                     v_if="value.visible",
                                                 )
                                                 vuetify.VIcon(
-                                                    'mdi-eye-off-outline',
+                                                    "mdi-eye-off-outline",
                                                     v_if="!value.visible",
                                                 )
 
-                                            html.P(
-                                                "{{key}}",
-                                                style="margin: 0;"
-                                            )
+                                            html.P("{{key}}", style="margin: 0;")
 
                                             with vuetify.VMenu(
                                                 top=True,
@@ -280,13 +283,17 @@ class ExodusViewer:
                                                 offset_y=10,
                                                 close_on_content_click=False,
                                             ):
-                                                with vuetify.Template(v_slot_activator="{ on }",):
+                                                with vuetify.Template(
+                                                    v_slot_activator="{ on }",
+                                                ):
                                                     with vuetify.VBtn(
                                                         icon=True,
                                                         v_on="on",
                                                     ):
                                                         html.Div(
-                                                            style=("{width: '15px', height: '15px', border: '1px solid black', background: value.html_color}",),
+                                                            style=(
+                                                                "{width: '15px', height: '15px', border: '1px solid black', background: value.html_color}",
+                                                            ),
                                                         )
                                                 vuetify.VColorPicker(
                                                     hide_canvas=True,
@@ -295,9 +302,18 @@ class ExodusViewer:
                                                     hide_mode_switch=True,
                                                     show_swatches=True,
                                                     v_model=("value.rgba",),
-                                                    input=(self.on_color_change, "[$event, '" + array_name + "', key]"),
+                                                    input=(
+                                                        self.on_color_change,
+                                                        "[$event, '"
+                                                        + array_name
+                                                        + "', key]",
+                                                    ),
                                                 )
-                    create_viz_editor("Blocks", "ex2_blocks",)
+
+                    create_viz_editor(
+                        "Blocks",
+                        "ex2_blocks",
+                    )
                     create_viz_editor("Boundaries", "ex2_boundaries")
                     create_viz_editor("Nodesets", "ex2_nodesets")
 
@@ -315,10 +331,10 @@ class ExodusViewer:
         state = self.state
 
         info = state[viz_type][viz_id]
-        info['visible'] = not info['visible']
+        info["visible"] = not info["visible"]
         state.dirty(viz_type)
 
-        entry = '/Root/' + viz_id
+        entry = "/Root/" + viz_id
         block_selectors = self.active_rep.BlockSelectors.GetData()
         if entry in block_selectors:
             block_selectors.remove(entry)
@@ -333,18 +349,18 @@ class ExodusViewer:
 
         info = state[viz_type][viz_id]
         rgba = list(rgba_obj.values())
-        info['rgba'] = rgba_obj
+        info["rgba"] = rgba_obj
 
         block_colors = self.active_rep.BlockColors.GetData()
-        block_path = '/Root/' + viz_id
+        block_path = "/Root/" + viz_id
         if block_path in block_colors:
             idx = block_colors.index(block_path)
-            del block_colors[idx:(idx + 4)]  # remove path + rgb values
+            del block_colors[idx : (idx + 4)]  # remove path + rgb values
 
         if rgba == [0, 0, 0, 0]:  # transparent
-            info['html_color'] = CHECKER_BACKGROUND
+            info["html_color"] = CHECKER_BACKGROUND
         else:
-            info['html_color'] = 'rgba' + str(tuple(rgba))
+            info["html_color"] = "rgba" + str(tuple(rgba))
             vtk_color = list(map(lambda x: str(x / 255), rgba[0:3]))
 
             block_colors.append(block_path)
@@ -369,7 +385,7 @@ class ExodusViewer:
             self.update_render_window()
 
     def on_active_variable(self, var):
-        simple.ColorBy(self.active_rep, ('POINTS', var))
+        simple.ColorBy(self.active_rep, ("POINTS", var))
         simple.HideScalarBarIfNotNeeded(self.active_lut, self.render_view)
         if var is not None:
             self.active_rep.SetScalarBarVisibility(self.render_view, True)
@@ -377,7 +393,7 @@ class ExodusViewer:
             lut.RescaleTransferFunction(*self.data_ranges[var])
             self.active_lut = lut
             if self.contour:
-                self.contour.ContourBy = ['POINTS', var]
+                self.contour.ContourBy = ["POINTS", var]
                 if self.state.auto_gen_contours:
                     self.state.active_variable = var
                     self.spread_contour_levels(self.state.num_contours)
@@ -392,7 +408,7 @@ class ExodusViewer:
         rep.Representation = self.active_rep.Representation
 
         active_var = self.state.active_variable
-        simple.ColorBy(rep, ('POINTS', active_var))
+        simple.ColorBy(rep, ("POINTS", active_var))
         simple.HideScalarBarIfNotNeeded(self.active_lut, self.render_view)
         rep.SetScalarBarVisibility(self.render_view, True)
         self.active_lut.RescaleTransferFunction(*self.data_ranges[active_var])
@@ -405,7 +421,7 @@ class ExodusViewer:
 
         sources = list(simple.GetSources().values())
         for s in sources:
-            if hasattr(s, 'Input') and s.Input == source:
+            if hasattr(s, "Input") and s.Input == source:
                 s.Input = source.Input
                 break
 
@@ -416,7 +432,7 @@ class ExodusViewer:
             rep.Representation = self.active_rep.Representation
 
             active_var = self.state.active_variable
-            simple.ColorBy(rep, ('POINTS', active_var))
+            simple.ColorBy(rep, ("POINTS", active_var))
             simple.HideScalarBarIfNotNeeded(self.active_lut, self.render_view)
             rep.SetScalarBarVisibility(self.render_view, True)
             self.active_lut.RescaleTransferFunction(*self.data_ranges[active_var])
@@ -440,12 +456,12 @@ class ExodusViewer:
         if self.clip is None:
             return
 
-        idx = ['X', 'Y', 'Z'].index(direction)
+        idx = ["X", "Y", "Z"].index(direction)
         normal = [0.0, 0.0, 0.0]
         normal[idx] = 1.0
         self.clip.ClipType.Normal = normal
 
-        clip_min, clip_max = self.bounds[(idx * 2):(idx * 2 + 2)]
+        clip_min, clip_max = self.bounds[(idx * 2) : (idx * 2 + 2)]
         self.state.clip_min = clip_min
         self.state.clip_max = clip_max
         self.state.clip_origin = clip_min + (clip_max - clip_min) / 2
@@ -467,7 +483,7 @@ class ExodusViewer:
 
     def _move_clip(self, axis_origin):
         origin = self.clip.ClipType.Origin
-        idx = ['X', 'Y', 'Z'].index(self.state.clip_direction)
+        idx = ["X", "Y", "Z"].index(self.state.clip_direction)
         origin[idx] = axis_origin
         self.clip.ClipType.Origin = origin
 
@@ -478,7 +494,7 @@ class ExodusViewer:
             self.contour = simple.Contour(Input=self.ex2)
 
         if show:
-            self.contour.ContourBy = ['POINTS', self.state.active_variable]
+            self.contour.ContourBy = ["POINTS", self.state.active_variable]
             self.contour.Isosurfaces = self.state.contour_levels
             self._add_source(self.contour)
         else:
@@ -490,7 +506,7 @@ class ExodusViewer:
         var_min, var_max = self.data_ranges[self.state.active_variable]
         levels = list(np.linspace(var_min, var_max, int(num_contours)))
         self.state.contour_levels = levels
-        self.state.dirty('contour_levels')
+        self.state.dirty("contour_levels")
 
         if self.contour:
             self.contour.Isosurfaces = levels
@@ -501,7 +517,7 @@ class ExodusViewer:
             self.spread_contour_levels(self.state.num_contours)
 
     def on_num_contours(self, num_contours):
-        if num_contours == '':
+        if num_contours == "":
             return
 
         num_contours = int(num_contours)
@@ -523,7 +539,7 @@ class ExodusViewer:
 
     def on_contour_level(self, idx, level):
         self.state.contour_levels[idx] = float(level)
-        self.state.dirty('contour_levels')
+        self.state.dirty("contour_levels")
 
         if self.contour:
             self.contour.Isosurfaces = self.state.contour_levels
@@ -533,18 +549,18 @@ class ExodusViewer:
         state = self.state
         state.contour_levels.append(state.contour_levels[-1])
         state.num_contours += 1
-        state.dirty('contour_levels')
+        state.dirty("contour_levels")
 
     def update_render_window(self):
         state = self.state
 
         if self.render_view is None:
-            view = simple.CreateView('RenderView')
+            view = simple.CreateView("RenderView")
             view.OrientationAxesVisibility = 0
             simple.SetActiveView(view)
 
-            color_palette = simple.GetSettingsProxy('ColorPalette')
-            color_palette.BackgroundColorMode = 'Gradient'
+            color_palette = simple.GetSettingsProxy("ColorPalette")
+            color_palette.BackgroundColorMode = "Gradient"
             color_palette.Background = [0.5, 0.5, 0.5]
             color_palette.Background2 = [0.75, 0.75, 0.75]
 
@@ -561,7 +577,7 @@ class ExodusViewer:
             variables = ex2.NodeBlockFields.GetData()
             active_var = variables[0]
             rep = simple.Show(ex2, view)
-            simple.ColorBy(rep, ('POINTS', active_var))
+            simple.ColorBy(rep, ("POINTS", active_var))
             rep.SetScalarBarVisibility(view, True)
 
             view.ResetCamera()
@@ -573,15 +589,16 @@ class ExodusViewer:
                 info = {}
                 for set_id in set_list:
                     info[str(set_id)] = {
-                        'visible': visible,
-                        'rgba': {'r': 0, 'g': 0, 'b': 0, 'a': 0},
-                        'html_color': CHECKER_BACKGROUND,
+                        "visible": visible,
+                        "rgba": {"r": 0, "g": 0, "b": 0, "a": 0},
+                        "html_color": CHECKER_BACKGROUND,
                     }
 
                     if visible:
-                        block_selectors.append('/Root/' + set_id)
+                        block_selectors.append("/Root/" + set_id)
 
                 return info
+
             ex2.ElementBlocks.SelectAll()
             ex2.SideSets.SelectAll()
             ex2.NodeSets.SelectAll()

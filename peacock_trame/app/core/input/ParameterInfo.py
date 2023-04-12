@@ -14,6 +14,7 @@ class ParameterInfo(object):
     """
     Holds the information for a parameter
     """
+
     def __init__(self, parent, name):
         self._value = ""
         self.user_added = False
@@ -90,11 +91,12 @@ class ParameterInfo(object):
             or ("std::string" in self.cpp_type and self.name == "value")
             or self.cpp_type == "FunctionExpression"
             or (
-                type(self._value) is str and (
-                    ' ' in self._value
-                    or ';' in self._value
-                    or '=' in self._value
-                    or '\n' in self._value
+                type(self._value) is str
+                and (
+                    " " in self._value
+                    or ";" in self._value
+                    or "=" in self._value
+                    or "\n" in self._value
                 )
             )
         )
@@ -115,7 +117,7 @@ class ParameterInfo(object):
         value = self._value
 
         if type(value) is list:
-            file_value = ' '.join([self._fileValue(val) for val in value])
+            file_value = " ".join([self._fileValue(val) for val in value])
         else:
             file_value = self._fileValue(value)
 
@@ -127,9 +129,9 @@ class ParameterInfo(object):
     def _fileValue(self, value):
         if type(value) is bool:
             if value:
-                return 'true'
+                return "true"
             else:
-                return 'false'
+                return "false"
         else:
             return str(value)
 
@@ -150,19 +152,19 @@ class ParameterInfo(object):
         return self._value
 
     def _parse(self, value):
-        if value == '' or value is None:
-            return ''
+        if value == "" or value is None:
+            return ""
 
         basic_type = self.basic_type
         basic_type_parse_map = {
-            'Integer': int,
-            'Real': float,
-            'Boolean': lambda x: (type(x) is bool and x) or x == 'true',
-            'String': lambda x: x,
+            "Integer": int,
+            "Real": float,
+            "Boolean": lambda x: (type(x) is bool and x) or x == "true",
+            "String": lambda x: x,
         }
 
-        if basic_type.startswith('Array:'):
-            basic_type = basic_type.split('Array:')[-1]
+        if basic_type.startswith("Array:"):
+            basic_type = basic_type.split("Array:")[-1]
             parse_func = basic_type_parse_map[basic_type]
 
             if type(value) is str:
@@ -178,7 +180,7 @@ class ParameterInfo(object):
     def hasChanged(self):
         return self._value != self.default or self.comments
 
-    def dump(self, o, indent=0, sep='  '):
+    def dump(self, o, indent=0, sep="  "):
         o.write("%sName: %s\n" % (indent * sep, self.name))
         o.write("%sValue: %s\n" % (indent * sep, self._value))
         o.write("%sDefault: %s\n" % (indent * sep, self.default))

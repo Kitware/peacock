@@ -20,7 +20,9 @@ def addInactive(hit_parent, parent, children):
         if entry and entry.checkInactive():
             inactive.append(entry.name)
     if inactive:
-        hit_parent.addChild(hit.NewField("inactive", "String", "'%s'" % ' '.join(inactive)))
+        hit_parent.addChild(
+            hit.NewField("inactive", "String", "'%s'" % " ".join(inactive))
+        )
 
 
 def inputTreeToString(root):
@@ -75,7 +77,9 @@ def nodeParamsString(hit_parent, entry, ignore_type=False):
             continue
         info = entry.parameters[name]
         val = info.inputFileValue()
-        if not val and name != 'active':  # we generally don't want to write out empty strings
+        if (
+            not val and name != "active"
+        ):  # we generally don't want to write out empty strings
             continue
         comments = info.comments
         if info.hasChanged() or info.user_added or info.set_in_input_file:

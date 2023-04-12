@@ -1,14 +1,14 @@
-import subprocess
 import asyncio
 import os
+import subprocess
 
-from trame.widgets import vuetify, html
 from trame.app import asynchronous
+from trame.widgets import html, vuetify
 
 from peacock_trame.widgets import peacock
 
 
-class Executor():
+class Executor:
     def __init__(self, server):
         self._server = server
 
@@ -16,25 +16,27 @@ class Executor():
 
     def terminal_print(self, msg, color=None):
         # ANSI color codes for colored terminal output
-        color_codes = dict(RESET='\033[0m',
-                           BOLD='\033[1m',
-                           DIM='\033[2m',
-                           RED='\033[31m',
-                           GREEN='\033[32m',
-                           YELLOW='\033[33m',
-                           BLUE='\033[34m',
-                           MAGENTA='\033[35m',
-                           CYAN='\033[36m',
-                           GREY='\033[90m',
-                           LIGHT_RED='\033[91m',
-                           LIGHT_GREEN='\033[92m',
-                           LIGHT_YELLOW='\033[93m',
-                           LIGHT_BLUE='\033[94m',
-                           LIGHT_MAGENTA='\033[95m',
-                           LIGHT_CYAN='\033[96m',
-                           LIGHT_GREY='\033[37m')
+        color_codes = dict(
+            RESET="\033[0m",
+            BOLD="\033[1m",
+            DIM="\033[2m",
+            RED="\033[31m",
+            GREEN="\033[32m",
+            YELLOW="\033[33m",
+            BLUE="\033[34m",
+            MAGENTA="\033[35m",
+            CYAN="\033[36m",
+            GREY="\033[90m",
+            LIGHT_RED="\033[91m",
+            LIGHT_GREEN="\033[92m",
+            LIGHT_YELLOW="\033[93m",
+            LIGHT_BLUE="\033[94m",
+            LIGHT_MAGENTA="\033[95m",
+            LIGHT_CYAN="\033[96m",
+            LIGHT_GREY="\033[37m",
+        )
         if color:
-            msg = color_codes[color] + msg + color_codes['RESET']
+            msg = color_codes[color] + msg + color_codes["RESET"]
 
         self._server.controller.write_to_terminal(msg)
 
@@ -46,11 +48,11 @@ class Executor():
         state.flush()
         await asyncio.sleep(0)
 
-        args = [state.executable, '-i', state.input_file]
+        args = [state.executable, "-i", state.input_file]
         if state.exe_use_mpi:
-            args = ['mpiexec', '-n', str(state.exe_processes)] + args
+            args = ["mpiexec", "-n", str(state.exe_processes)] + args
         if state.exe_use_threading:
-            args.append('--n-threads=' + str(state.exe_threads))
+            args.append("--n-threads=" + str(state.exe_threads))
 
         self.terminal_print(f"Running command: {' '.join(args)}", color="MAGENTA")
         self.terminal_print(f"Working directory: {os.getcwd()}", color="MAGENTA")
@@ -92,15 +94,12 @@ class Executor():
                         """,
                     ):
                         with html.Div(style="display: flex; flex-direction: column;"):
-                            vuetify.VIcon(
-                                'mdi-chevron-down',
-                                style="height: 15px;"
-                            )
+                            vuetify.VIcon("mdi-chevron-down", style="height: 15px;")
                             with vuetify.VSlideYTransition():
                                 vuetify.VIcon(
-                                    'mdi-cog-outline',
+                                    "mdi-cog-outline",
                                     v_if="hover",
-                                    style="padding-top: 15px;"
+                                    style="padding-top: 15px;",
                                 )
             with html.Div(
                 style="position: relative; width: 500px;",
@@ -152,25 +151,26 @@ class Executor():
                             click="show_executor_settings = false",
                             style="min-width: 50px; min-height: 0px; height: auto; padding: 2px; border-radius: 0px 0px 4px 4px; z-index: 3;",
                         ):
-                            with html.Div(style="display: flex; flex-direction: column;"):
+                            with html.Div(
+                                style="display: flex; flex-direction: column;"
+                            ):
                                 with vuetify.VSlideYReverseTransition():
                                     vuetify.VIcon(
-                                        'mdi-cog-off-outline',
+                                        "mdi-cog-off-outline",
                                         v_if="hover",
                                     )
-                                vuetify.VIcon(
-                                    'mdi-chevron-up',
-                                    style="height: 15px;"
-                                )
+                                vuetify.VIcon("mdi-chevron-up", style="height: 15px;")
 
             with html.Div(
-                style=("""{
+                style=(
+                    """{
                     height: show_executor_settings ? 'calc(100% - 150px)' : 'calc(100% - 8px)',
                     width: '100%',
                     padding: '8px',
                     paddingTop: '0px',
                     marginTop: show_executor_settings ? '0px' : '25px'
-                }""",),
+                }""",
+                ),
             ):
                 term = peacock.Terminal()
                 ctrl.write_to_terminal = term.write

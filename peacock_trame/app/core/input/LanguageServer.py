@@ -1,10 +1,12 @@
+import os
+import socket
+import subprocess
+
 import aiohttp
 from aiohttp.client_exceptions import ClientConnectionError
-import socket
 from trame.app import asynchronous
-import os
+
 import peacock_trame
-import subprocess
 
 
 class LanguageServerManager:
@@ -12,12 +14,12 @@ class LanguageServerManager:
         self.server = trame_server
         state = trame_server.state
 
-        @trame_server.trigger('trame_lang_server')
+        @trame_server.trigger("trame_lang_server")
         def on_lang_server(type, event):
             # print("LANG CLIENT MSG: ", type, event)
-            if type == 'send':
+            if type == "send":
                 self.send_to_lang_server(event)
-            if type == 'close':
+            if type == "close":
                 self.ws.close()
 
         # use socket bound to port 0 to find random open port
@@ -28,16 +30,20 @@ class LanguageServerManager:
 
         # start language server
         # TODO: kill child process after unexpected exit
-        lang_server_dir = os.path.join(os.path.dirname(peacock_trame.__file__), '..', 'lang-server')
-        subprocess.Popen([
-            "npm",
-            "run",
-            "--prefix",
-            lang_server_dir,
-            "start",
-            state.lang_server_path,
-            str(port),
-        ])
+        lang_server_dir = os.path.join(
+            os.path.dirname(peacock_trame.__file__), "..", "lang-server"
+        )
+        subprocess.Popen(
+            [
+                "npm",
+                "run",
+                "--prefix",
+                lang_server_dir,
+                "start",
+                state.lang_server_path,
+                str(port),
+            ]
+        )
 
         self.url = f"ws://localhost:{port}"
         self.init_ws()
@@ -51,7 +57,7 @@ class LanguageServerManager:
                 try:
                     async with client.ws_connect(self.url, max_msg_size=0) as ws:
                         self.ws = ws
-                        self.send_to_client({'type': "open"})
+                        self.send_to_client({"type": "open"})
                         connected = True
                         async for msg in ws:
                             # print("LANG SERVER MSG: ", msg.data)
@@ -61,7 +67,9 @@ class LanguageServerManager:
                                 print(msg.data)
                                 pass
                             else:
-                                self.send_to_client({'type': "message", 'data': msg.data})
+                                self.send_to_client(
+                                    {"type": "message", "data": msg.data}
+                                )
 
                 except ClientConnectionError:
                     pass

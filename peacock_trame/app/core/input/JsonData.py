@@ -8,9 +8,12 @@
 # * Licensed under LGPL 2.1, please see LICENSE for details
 # * https://www.gnu.org/licenses/lgpl-2.1.html
 
-from ..common import ExeLauncher
 import json
+
 import mooseutils
+
+from ..common import ExeLauncher
+
 # from PyQt5.QtWidgets import QApplication
 
 
@@ -66,19 +69,22 @@ class JsonData(object):
         """
         #  "-options_left 0" is used to stop the debug version of PETSc from printing
         # out WARNING messages that sometime confuse the json parser
-        print('running executable')
-        data = ExeLauncher.runExe(app_path, ["-options_left", "0", "--json"] + self.extra_args)
-        data = data.split('**START JSON DATA**\n')[1]
-        data = data.split('**END JSON DATA**')[0]
+        print("running executable")
+        data = ExeLauncher.runExe(
+            app_path, ["-options_left", "0", "--json"] + self.extra_args
+        )
+        data = data.split("**START JSON DATA**\n")[1]
+        data = data.split("**END JSON DATA**")[0]
         return data
 
     def toPickle(self):
         """
         Return a dict that can be pickled
         """
-        return {"app_path": self.app_path,
-                "json_data": self.json_data,
-                }
+        return {
+            "app_path": self.app_path,
+            "json_data": self.json_data,
+        }
 
     def fromPickle(self, data):
         """
@@ -92,6 +98,7 @@ class JsonData(object):
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) != 2:
         print("Usage: %s <exe path>" % sys.argv[0])
         sys.exit(1)

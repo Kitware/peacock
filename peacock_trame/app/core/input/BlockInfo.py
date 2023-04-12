@@ -7,13 +7,16 @@
 # * Licensed under LGPL 2.1, please see LICENSE for details
 # * https://www.gnu.org/licenses/lgpl-2.1.html
 
-import os
 import copy
+import os
+
 try:
     from cStringIO import StringIO
 except ImportError:
     from io import StringIO
+
 import mooseutils
+
 from .ParameterInfo import ParameterInfo
 
 
@@ -21,6 +24,7 @@ class BlockInfo(object):
     """
     Holds information about a block.
     """
+
     def __init__(self, parent, path, hard=False, description=""):
         """
         Input:
@@ -53,7 +57,12 @@ class BlockInfo(object):
         return not self.included and self.wantsToSave()
 
     def wantsToSave(self):
-        return self.changed_by_user or self.user_added or self.included or self.childrenWantToSave()
+        return (
+            self.changed_by_user
+            or self.user_added
+            or self.included
+            or self.childrenWantToSave()
+        )
 
     def childrenWantToSave(self):
         for key in self.children_list:
@@ -188,7 +197,10 @@ class BlockInfo(object):
         """
         tmp_child = self.children.get(newname)
         if tmp_child:
-            mooseutils.mooseWarning("Tried to rename %s to %s but %s already exists." % (oldname, newname, newname))
+            mooseutils.mooseWarning(
+                "Tried to rename %s to %s but %s already exists."
+                % (oldname, newname, newname)
+            )
             return
 
         child = self.children.get(oldname)
@@ -223,7 +235,10 @@ class BlockInfo(object):
         """
         pinfo = self.getParamInfo(param)
         if pinfo:
-            mooseutils.mooseWarning("Tried to add a user parameter when that name already exists: %s:%s" % (self.path, param))
+            mooseutils.mooseWarning(
+                "Tried to add a user parameter when that name already exists: %s:%s"
+                % (self.path, param)
+            )
             return
         pinfo = ParameterInfo(self, param)
         pinfo.user_added = True
@@ -358,7 +373,7 @@ class BlockInfo(object):
             if name not in self.children_list:
                 return name
 
-    def dump(self, indent=0, sep='  '):
+    def dump(self, indent=0, sep="  "):
         """
         Provides a description of this block with all of its children, types, etc.
         Input:
@@ -436,7 +451,6 @@ class BlockInfo(object):
         return ol
 
     def __eq__(self, otherBlock):
-
         if not isinstance(otherBlock, BlockInfo):
             return False
 
