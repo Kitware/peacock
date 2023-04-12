@@ -724,9 +724,9 @@ class InputFileEditor:
 
                     renderWindow = self.update_render_window()
                     if USE_PARAVIEW:
-                        renderView = paraview.VtkRemoteView(renderWindow, ref="input_view")
+                        renderView = paraview.VtkRemoteView(renderWindow, interactive_ratio=1, ref="input_view")
                     else:
-                        renderView = vtk.VtkRemoteView(renderWindow, ref="input_view")
+                        renderView = vtk.VtkRemoteView(renderWindow, interactive_ratio=1, ref="input_view")
                     ctrl.update_input_mesh_view = renderView.update
 
                     # block, boundary, nodeset selector

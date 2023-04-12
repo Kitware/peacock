@@ -175,7 +175,7 @@ class ExodusViewer:
             with html.Div(
                 style="flex-grow: 1; position: relative;",
             ):
-                renderView = paraview.VtkRemoteView(self.update_render_window(), ref="exodus_view")
+                renderView = paraview.VtkRemoteView(self.update_render_window(), interactive_ratio=1, ref="exodus_view")
                 self.ctrl.update_exodus_view = renderView.update
 
                 # ex2 timestep controller
