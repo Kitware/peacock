@@ -3,17 +3,22 @@ import os
 import sys
 
 import vtkmodules.vtkRenderingOpenGL2  # noqa
+
 from pyaml import yaml
+
 from trame.widgets import html, paraview, simput, vtk, vuetify
 from trame_simput.core.mapping import ObjectFactory, ProxyObjectAdapter
 from vtkmodules.vtkFiltersExtraction import vtkExtractBlock
 from vtkmodules.vtkFiltersGeometry import vtkDataSetSurfaceFilter
 from vtkmodules.vtkInteractionStyle import vtkInteractorStyleSwitch  # noqa
 from vtkmodules.vtkIOExodus import vtkExodusIIReader
-from vtkmodules.vtkRenderingCore import (vtkActor,
-                                         vtkCompositeDataDisplayAttributes,
-                                         vtkRenderer, vtkRenderWindow,
-                                         vtkRenderWindowInteractor)
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkCompositeDataDisplayAttributes,
+    vtkRenderer,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+)
 from vtkmodules.vtkRenderingOpenGL2 import vtkCompositePolyDataMapper2
 
 from peacock_trame.widgets import peacock
