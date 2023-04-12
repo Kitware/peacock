@@ -3,7 +3,7 @@ import os
 from trame.app import dev, get_server
 from trame.assets.local import LocalFileManager
 from trame.ui.vuetify import VAppLayout
-from trame.widgets import html, simput, vuetify
+from trame.widgets import client, html, simput, vuetify
 from trame_simput import get_simput_manager
 
 from peacock_trame import module
@@ -48,9 +48,19 @@ def initialize(server):
 
     with VAppLayout(server) as layout:
         layout.root = simput_widget
+        client.Style(
+            """
+            html {
+                overflow:  hidden !important;
+            }
+        """
+        )
 
         def on_tab_change(tab_idx):
             # check for output file when switching to exodus viewer
+            if tab_idx == 1:
+                executor.activate()
+
             if tab_idx == 2:
                 exodus_viewer.check_file()
 
@@ -104,7 +114,7 @@ def initialize(server):
                     )
                     vuetify.VBtn(
                         "Clear",
-                        click=ctrl.clear_terminal,
+                        click=ctrl.terminal_clear,
                         style="z-index: 1;",
                     )
 

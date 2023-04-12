@@ -3,42 +3,43 @@ import os
 import subprocess
 
 from trame.app import asynchronous
-from trame.widgets import html, vuetify
+from trame.widgets import html, vuetify, xterm
 
-from peacock_trame.widgets import peacock
+ANSI_COLORS = dict(
+    RESET="\033[0m",
+    BOLD="\033[1m",
+    DIM="\033[2m",
+    RED="\033[31m",
+    GREEN="\033[32m",
+    YELLOW="\033[33m",
+    BLUE="\033[34m",
+    MAGENTA="\033[35m",
+    CYAN="\033[36m",
+    GREY="\033[90m",
+    LIGHT_RED="\033[91m",
+    LIGHT_GREEN="\033[92m",
+    LIGHT_YELLOW="\033[93m",
+    LIGHT_BLUE="\033[94m",
+    LIGHT_MAGENTA="\033[95m",
+    LIGHT_CYAN="\033[96m",
+    LIGHT_GREY="\033[37m",
+)
 
 
 class Executor:
     def __init__(self, server):
         self._server = server
-
         server.state.exe_running = False
+
+    def activate(self):
+        self._server.controller.terminal_fit()
 
     def terminal_print(self, msg, color=None):
         # ANSI color codes for colored terminal output
-        color_codes = dict(
-            RESET="\033[0m",
-            BOLD="\033[1m",
-            DIM="\033[2m",
-            RED="\033[31m",
-            GREEN="\033[32m",
-            YELLOW="\033[33m",
-            BLUE="\033[34m",
-            MAGENTA="\033[35m",
-            CYAN="\033[36m",
-            GREY="\033[90m",
-            LIGHT_RED="\033[91m",
-            LIGHT_GREEN="\033[92m",
-            LIGHT_YELLOW="\033[93m",
-            LIGHT_BLUE="\033[94m",
-            LIGHT_MAGENTA="\033[95m",
-            LIGHT_CYAN="\033[96m",
-            LIGHT_GREY="\033[37m",
-        )
         if color:
-            msg = color_codes[color] + msg + color_codes["RESET"]
+            msg = ANSI_COLORS[color] + msg + ANSI_COLORS["RESET"]
 
-        self._server.controller.write_to_terminal(msg)
+        self._server.controller.terminal_println(msg)
 
     @asynchronous.task
     async def run(self):
@@ -59,7 +60,7 @@ class Executor:
 
         self.process = subprocess.Popen(args, stdout=subprocess.PIPE)
         for line in self.process.stdout:
-            ctrl.write_to_terminal(line.decode())
+            ctrl.terminal_println(line.decode())
             await asyncio.sleep(0)
         self.process.stdout.close()
         state.exe_running = False
@@ -172,8 +173,9 @@ class Executor:
                 }""",
                 ),
             ):
-                term = peacock.Terminal()
-                ctrl.write_to_terminal = term.write
-                ctrl.clear_terminal = term.clear
+                term = xterm.XTerm(options="{ disableStdin: 0 }")
+                ctrl.terminal_println = term.writeln
+                ctrl.terminal_clear = term.clear
+                ctrl.terminal_fit = term.fit
 
         return executor_ui
