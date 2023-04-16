@@ -4,8 +4,9 @@
   "description": "",
   "main": "ls-middleware.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node ls-middleware.js"
+    "build": "mkdir -p ../peacock_trame/lang-server && cp -r ls-middleware.js node_modules/ ../peacock_trame/lang-server/",
+    "clean": "rm -rf ../peacock_trame/lang-server",
+    "postinstall": "npm run clean && npm run build"
   },
   "author": "",
   "license": "ISC",

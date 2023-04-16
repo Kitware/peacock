@@ -30,18 +30,18 @@ class LanguageServerManager:
 
         # start language server
         # TODO: kill child process after unexpected exit
-        lang_server_dir = os.path.join(
-            os.path.dirname(peacock_trame.__file__), "..", "lang-server"
+        ls_middleware_path = os.path.join(
+            os.path.dirname(peacock_trame.__file__),
+            "lang-server",
+            "ls-middleware.js",
         )
         subprocess.Popen(
             [
-                "npm",
-                "run",
-                "--prefix",
-                lang_server_dir,
-                "start",
+                "node",
+                ls_middleware_path,
                 state.lang_server_path,
                 str(port),
+                '--stdio',
             ]
         )
 

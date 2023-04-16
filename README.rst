@@ -77,6 +77,13 @@ Clone and build the moose language server
     cd moose-language-support
     npm run compile
 
+Install middleware packages
+
+.. code-block:: console
+
+    cd /path/to/peacock/lang-server
+    npm i
+
 Point to compiled language server when running app
 
 .. code-block:: console

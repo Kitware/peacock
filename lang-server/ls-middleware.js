@@ -6,7 +6,7 @@ const WebSocket = require('ws');
 
 const args = process.argv
 if (args.length < 4) {
-  console.log("Usage: npm run start server_path port")
+  console.log("Usage: node ls-middleware.js server_path port")
   throw new Error()
 }
 
