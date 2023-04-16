@@ -67,6 +67,23 @@ Test application on a moose example
     make
     $PVPYTHON -m paraview.apps.trame -I ./ex08.i -E ex08-opt
 
+Running with language server
+-----------------------------------------------------------
+Clone and build the moose language server
+
+.. code-block:: console
+
+    git clone git@github.com:idaholab/moose-language-support.git
+    cd moose-language-support
+    npm run compile
+
+Point to compiled language server when running app
+
+.. code-block:: console
+
+    $PVPYTHON -m paraview.apps.trame -I ./ex08.i -E ex08-opt \
+        -L /path/to/moose-language-support/server/out/server.js
+
 Development setup
 -----------------------------------------------------------
 
