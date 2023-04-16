@@ -7,8 +7,7 @@ import {
 } from 'monaco-languageclient';
 import { listen } from 'vscode-ws-jsonrpc';
 
-// import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-import loader from '@monaco-editor/loader';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 
 import {
   createOnigScanner,
@@ -48,6 +47,26 @@ export default {
         name: 'Monaco language client',
         clientOptions: {
           documentSelector: ['moose'],
+          // pass config to spoof vscode workspace
+          // moose language server will error without this
+          middleware: {
+            workspace: {
+              configuration: (params, token, configuration) => {
+                return Array(
+                  (configuration(params, token) ).length
+                ).fill({
+                  moose: {
+                    maxNumberOfProblems: 1000,
+                    fallbackMooseDir: '',
+                    ignoreMooseNotFoundError: false,
+                    hideDeprecatedParams: false,
+                    allowTestObjects: false,
+                    detailedOutline: false
+                  }
+                });
+              },
+            },
+          },
           errorHandler: {
             error: () => ErrorAction.Continue,
             closed: () => CloseAction.Restart,
@@ -95,79 +114,77 @@ export default {
       return await response.arrayBuffer();
     },
   },
-  mounted() {
-    loader.init().then(async (monaco) => {
-      const languages = [
-        {
-          id: 'moose',
-          extensions: ['.i'],
-          aliases: ['Moose'],
-          filenames: [],
-          firstLine: '',
-        },
-      ];
-      const grammars = {
-        'input.moose': {
-          language: 'moose',
-          path: 'moose.json',
-        },
-      };
-      const fetchGrammar = async (scopeName) => {
-        const { path } = grammars[scopeName];
-        // const uri = `/grammars/${path}`;
-        // const response = await fetch(uri);
-        // const grammar = await response.text();
-        const grammar = JSON.stringify(moose_grammar);
-        const type = path.endsWith('.json') ? 'json' : 'plist';
-        return { type, grammar };
-      };
-      const fetchConfiguration = async () => {
-        // const uri = `/configurations/${language}.json`;
-        // const response = await fetch(uri);
-        // const rawConfiguration = await response.text();
-        const rawConfiguration = JSON.stringify(moose_config);
-        return rehydrateRegexps(rawConfiguration);
-      };
-      const data = await this.loadVSCodeOnigurumWASM();
-      await loadWASM(data);
-      const onigLib = Promise.resolve({
-        createOnigScanner,
-        createOnigString,
-      });
-      const provider = await new SimpleLanguageInfoProvider({
-        grammars,
-        fetchGrammar,
-        configurations: languages.map((language) => language.id),
-        fetchConfiguration,
-        theme: VsCodeDarkTheme,
-        onigLib,
-        monaco,
-      });
-      registerLanguages(
-        languages,
-        (language) => provider.fetchLanguageInfo(language),
-        monaco
-      );
+  async mounted() {
+    const languages = [
+      {
+        id: 'moose',
+        extensions: ['.i'],
+        aliases: ['Moose'],
+        filenames: [],
+        firstLine: '',
+      },
+    ];
+    const grammars = {
+      'input.moose': {
+        language: 'moose',
+        path: 'moose.json',
+      },
+    };
+    const fetchGrammar = async (scopeName) => {
+      const { path } = grammars[scopeName];
+      // const uri = `/grammars/${path}`;
+      // const response = await fetch(uri);
+      // const grammar = await response.text();
+      const grammar = JSON.stringify(moose_grammar);
+      const type = path.endsWith('.json') ? 'json' : 'plist';
+      return { type, grammar };
+    };
+    const fetchConfiguration = async () => {
+      // const uri = `/configurations/${language}.json`;
+      // const response = await fetch(uri);
+      // const rawConfiguration = await response.text();
+      const rawConfiguration = JSON.stringify(moose_config);
+      return rehydrateRegexps(rawConfiguration);
+    };
+    const data = await this.loadVSCodeOnigurumWASM();
+    await loadWASM(data);
+    const onigLib = Promise.resolve({
+      createOnigScanner,
+      createOnigString,
+    });
+    const provider = await new SimpleLanguageInfoProvider({
+      grammars,
+      fetchGrammar,
+      configurations: languages.map((language) => language.id),
+      fetchConfiguration,
+      theme: VsCodeDarkTheme,
+      onigLib,
+      monaco,
+    });
+    registerLanguages(
+      languages,
+      (language) => provider.fetchLanguageInfo(language),
+      monaco
+    );
 
-      this.editor = monaco.editor.create(this.$el, {
-        model: monaco.editor.createModel(
-          this.contents,
-          'moose',
-          monaco.Uri.parse('file://' + this.filepath)
-        ),
-        theme: 'vs-dark',
-        automaticLayout: true,
-      });
-      provider.injectCSS();
+    this.editor = monaco.editor.create(this.$el, {
+      model: monaco.editor.createModel(
+        this.contents,
+        'moose',
+        monaco.Uri.parse('file://' + this.filepath)
+      ),
+      theme: 'vs-dark',
+      automaticLayout: true,
+    });
+    provider.injectCSS();
 
-      MonacoServices.install(monaco);
-      this.connectToLangServer();
+    MonacoServices.install(monaco);
+    this.connectToLangServer();
 
-      this.editor.onDidChangeModelContent(() => {
-        if (!this.valueSetFromParent)
-          this.$emit('change', this.editor.getValue());
-        else this.valueSetFromParent = false;
-      });
+    this.editor.onDidChangeModelContent(() => {
+      if (!this.valueSetFromParent)
+        this.$emit('change', this.editor.getValue());
+      else this.valueSetFromParent = false;
     });
   },
   inject: ['trame'],
