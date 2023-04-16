@@ -3,17 +3,16 @@
   "private": true,
   "version": "0.0.0",
   "dependencies": {
-    "@monaco-editor/loader": "^1.2.0",
-    "copy-webpack-plugin": "^6.4.1",
-    "core-js": "^3.6.5",
-    "monaco-editor": "^0.31.0",
-    "monaco-editor-webpack-plugin": "^7.0.1",
-    "monaco-languageclient": "^0.13.0",
-    "vscode-oniguruma": "^1.3.0",
-    "vscode-textmate": "^5.1.1",
-    "vscode-ws-jsonrpc": "^0.2.0",
+    "copy-webpack-plugin": "6.4.1",
+    "core-js": "3.6.5",
+    "monaco-editor": "0.31.0",
+    "monaco-editor-webpack-plugin": "7.0.1",
+    "monaco-languageclient": "0.17.0",
+    "vscode-oniguruma": "1.3.0",
+    "vscode-textmate": "5.1.1",
+    "vscode-ws-jsonrpc": "0.2.0",
     "vue": "2.6.11",
-    "xterm": "^5.0.0"
+    "xterm": "5.0.0"
   },
   "scripts": {
     "serve:CustomWidget": "vue-cli-service serve src/tests/CustomWidget/main.js",
