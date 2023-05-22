@@ -45,25 +45,13 @@ class TimeStepController:
         self._render_function = func
 
     def get_ui(self):
-        with html.Div(
-            style="display: flex; flex-direction: column;",
-        ) as container:
-            with html.Div(
-                style="display: flex; justify-content: center;",
-            ):
+        with html.Div(style="display: flex; flex-direction: column;") as container:
+            with html.Div(style="display: flex; justify-content: center;"):
                 html.P(
-                    "{{"
-                    + self._get_state_var_name("curr_frame")
-                    + "}}"
-                    + " / "
-                    + "{{"
-                    + self._get_state_var_name("num_frames")
-                    + "}}",
-                    style="margin: 0;",
+                    f"{{{{ {self._get_state_var_name('curr_frame')} }}}} / {{{{ {self._get_state_var_name('num_frames')} }}}}",
+                    classes="ma-0",
                 )
-            with html.Div(
-                style="display: flex;",
-            ):
+            with html.Div(style="display: flex;"):
                 # first frame btn
                 with vuetify.VBtn(
                     click=self._first,

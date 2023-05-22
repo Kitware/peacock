@@ -525,7 +525,7 @@ class ExodusViewer:
         if self.state.auto_gen_contours:
             self.spread_contour_levels(num_contours)
         else:
-            levels = state.contour_levels
+            levels = self.state.contour_levels
             if len(levels) > num_contours:
                 levels = levels[0:num_contours]
             else:

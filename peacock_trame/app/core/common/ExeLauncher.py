@@ -17,9 +17,9 @@ from .PeacockException import BadExecutableException, FileExistsException
 
 def runExe(app_path, args, print_errors=True):
     """
-    Convience function to run a executable with arguments and return the output
+    Convenience function to run a executable with arguments and return the output
     Input:
-        app_path: str: Path to the excutable
+        app_path: str: Path to the executable
         args: either str or list: Arguments to pass to the executable
     Return:
         str: output of running the command

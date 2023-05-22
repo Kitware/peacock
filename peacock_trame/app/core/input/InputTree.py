@@ -118,7 +118,7 @@ class InputTree(object):
         Input:
             input_file[InputFile]: Input file to copy
         Return:
-            bool: True if successfull
+            bool: True if successful
         """
         self.input_has_errors = False
         if not input_file.root_node:
