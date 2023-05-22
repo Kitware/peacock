@@ -41,7 +41,7 @@ class LanguageServerManager:
                 ls_middleware_path,
                 state.lang_server_path,
                 str(port),
-                '--stdio',
+                "--stdio",
             ]
         )
 

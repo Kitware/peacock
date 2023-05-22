@@ -170,9 +170,7 @@ def main(server=None, **kwargs):
     (args, _unknown) = parser.parse_known_args()
     state = server.state
     if args.input is None:
-        print(
-            "Usage: \n\tpeacock-trame -I /path/to/input/file"
-        )
+        print("Usage: \n\tpeacock-trame -I /path/to/input/file")
         return
     state.input_file = str(Path(args.input).absolute())
     if args.exe:
