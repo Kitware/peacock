@@ -36,36 +36,21 @@ Running the software
     cd peacock-work
     git clone --recursive git@github.com:Kitware/peacock.git
     git clone --recursive https://github.com/idaholab/moose.git
-    curl -LO https://www.paraview.org/files/v5.11/ParaView-5.11.0-MPI-OSX11.0-Python3.9-arm64.dmg
-    # Mount and copy ParaView-5.11.0.app/ in the current directory
 
 Create venv with mamba locally
 
 .. code-block:: console
 
     mamba install python=3.9
-    mamba create -p ./venv python=3.9 moose-tools moose-libmesh
-    mamba activate ./venv
+    mamba create -n moose python=3.9 moose paraview -y
+    mamba activate moose
     pip install ./peacock
-
-
-Setup env property to ease execution later on
-
-.. code-block:: console
-
-    export MOOSE_DIR=$PWD/moose
-    export PVPYTHON=$PWD/ParaView-5.11.0.app/Contents/bin/pvpython
-    export PV_VENV=$PWD/venv
-    export TRAME_APP=peacock_trame.app
-
 
 Test application on a moose example
 
 .. code-block:: console
 
-    cd ./moose/examples/ex08_materials
-    make
-    $PVPYTHON -m paraview.apps.trame -I ./ex08.i -E ex08-opt
+    peacock-trame -I ./moose/examples/ex08_materials/ex08.i
 
 Running with language server
 -----------------------------------------------------------
@@ -88,8 +73,7 @@ Point to compiled language server when running app
 
 .. code-block:: console
 
-    $PVPYTHON -m paraview.apps.trame -I ./ex08.i -E ex08-opt \
-        -L /path/to/moose-language-support/server/out/server.js
+    peacock-trame -I ./ex08.i -L /path/to/moose-language-support/server/out/server.js
 
 Development setup
 -----------------------------------------------------------
@@ -114,13 +98,6 @@ Run the application assuming the same layout as previously described
 
 .. code-block:: console
 
-    export MOOSE_DIR=$PWD/moose
-    export PVPYTHON=$PWD/ParaView-5.11.0.app/Contents/bin/pvpython
-    export PV_VENV=$PWD/venv
-    export TRAME_APP=peacock_trame.app
-
-.. code-block:: console
-
     cd ./moose/examples/ex08_materials
     make
-    $PVPYTHON -m paraview.apps.trame -I ./ex08.i -E ex08-opt
+    peacock-trame -I ./ex08.i

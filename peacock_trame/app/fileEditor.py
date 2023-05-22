@@ -1,6 +1,7 @@
 import difflib
 import os
 import sys
+from pathlib import Path
 
 import vtkmodules.vtkRenderingOpenGL2  # noqa
 
@@ -27,13 +28,11 @@ from .core.common.PeacockException import BadExecutableException
 from .core.common.utils import debounced_run
 
 # add moose/python to sys path
-moose_dir = os.environ.get("MOOSE_DIR", None)
-if moose_dir is None:
-    print(
-        "The 'MOOSE_DIR' environmental variable must be set and point to the base dir for moose."
-    )
-    sys.exit(0)
-sys.path.append(os.path.join(moose_dir, "python"))
+conda_prefix = os.environ.get("CONDA_PREFIX", None)
+if conda_prefix:
+    lib_path = Path(conda_prefix) / "moose/share/moose/python"
+    if lib_path.exists():
+        sys.path.append(str(lib_path))
 
 from .core.common import ExeLauncher  # noqa
 from .core.input.ExecutableInfo import ExecutableInfo  # noqa

@@ -169,15 +169,20 @@ def main(server=None, **kwargs):
     )
     (args, _unknown) = parser.parse_known_args()
     state = server.state
-    if args.input is None or args.exe is None:
+    if args.input is None:
         print(
-            "Usage: \n\tpeacock-trame -I /path/to/input/file -E /path/to/executable [options]"
+            "Usage: \n\tpeacock-trame -I /path/to/input/file"
         )
         return
-    state.input_file = os.path.abspath(args.input)
-    state.executable = os.path.abspath(args.exe)
+    state.input_file = str(Path(args.input).absolute())
+    if args.exe:
+        state.executable = str(Path(args.exe).absolute())
+    else:
+        exec_name = str(Path(args.input).stem) + "-opt"
+        state.executable = str(Path(args.input).absolute().parent / exec_name)
+
     if args.lang_server:
-        state.lang_server_path = os.path.abspath(args.lang_server)
+        state.lang_server_path = str(Path(args.lang_server).absolute())
 
     # Init application
     engine = Peacock(server)
