@@ -72,12 +72,12 @@ jobs:
       - name: Set Up Node
         uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: 18
 
       - name: Build Vue Components
         run: |
           cd vue-components
-          npm i
+          npm ci
           npm run build
 
   release:
@@ -102,6 +102,7 @@ jobs:
 
       - name: Build Vue Components
         run: |
+          export NODE_OPTIONS=--openssl-legacy-provider
           cd vue-components
           npm i
           npm run build
