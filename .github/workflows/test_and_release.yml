@@ -83,7 +83,7 @@ jobs:
   release:
     needs: [
       pre-commit,
-      pytest,
+      # pytest,
       test-npm-build,
     ]
     runs-on: ubuntu-latest

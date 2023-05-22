@@ -2,6 +2,8 @@ from trame_client.widgets.core import AbstractElement
 
 from .. import module
 
+__all__ = ["Editor"]
+
 
 class HtmlElement(AbstractElement):
     def __init__(self, _elem_name, children=None, **kwargs):
@@ -23,18 +25,3 @@ class Editor(HtmlElement):
         self._event_names += [
             "change",
         ]
-
-
-class Terminal(HtmlElement):
-    _next_id = 0
-
-    def __init__(self, **kwargs):
-        Terminal._next_id += 1
-        self._ref = kwargs.get("ref", f"terminal_{Terminal._next_id}")
-        super().__init__("terminal", **{**kwargs, "ref": self._ref})
-
-    def write(self, string):
-        self.server.js_call(self._ref, "write", string)
-
-    def clear(self):
-        self.server.js_call(self._ref, "clear")
