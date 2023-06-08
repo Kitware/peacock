@@ -34,30 +34,43 @@ jobs:
             name: "Linux",
             os: ubuntu-latest
           }
-        - {
-            name: "MacOSX",
-            os: macos-latest
-          }
-        - {
-            name: "Windows",
-            os: windows-latest
-          }
+        # Moose is not working on x86_64 Mac because the following command has
+        # dependency conflicts in the solver between Moose and ParaView:
+        # micromamba create -n moose python=3.9 moose paraview -y -c https://conda.software.inl.gov/public
+        # - {
+        #     name: "MacOSX",
+        #     os: macos-latest
+        #   }
+        # Moose is not available at all on Windows, so skip testing Windows
 
     defaults:
       run:
-        shell: bash
+        # The "-l {0}" is needed to make sure .bashrc is activated
+        # We need this for micromamba to be locatable.
+        shell: bash -l {0}
 
     steps:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+    - uses: mamba-org/setup-micromamba@v1
       with:
-        python-version: ${{ matrix.python-version }}
+        init-shell: bash
+
+    # EGL is required to import ParaView on Linux
+    - name: Install EGL (Linux)
+      if: ${{ matrix.config.name == 'Linux' }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libegl1
+
+    - name: Install Moose and ParaView
+      run: |
+        micromamba create -n moose python=3.9 moose paraview -y -c https://conda.software.inl.gov/public
 
     - name: Install and Run Tests
       run: |
+        micromamba activate moose
         pip install .
         pip install -r tests/requirements.txt
         pytest -s ./tests
