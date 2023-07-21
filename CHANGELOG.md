@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.1 (2023-07-21)
+
+### Fix
+
+* **trame:** Update to support trame v3 ([`0ea4a0c`](https://github.com/Kitware/peacock/commit/0ea4a0c44bd8629c6d98fb3ccb2d113aafb36de8))
+
+### Documentation
+
+* Update readme to use pypi ([`3a936d8`](https://github.com/Kitware/peacock/commit/3a936d8d4d7a0fc40c812f6c9eca29303bbce319))
+
 ## v0.1.0 (2023-05-22)
 ### Feature
 * **ExodusViewer:** Add timestep controller ([`1061596`](https://github.com/Kitware/peacock/commit/106159683ab8515b008b50289ad138926ae031cb))
