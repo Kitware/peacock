@@ -160,6 +160,9 @@ def main(server=None, **kwargs):
     if isinstance(server, str):
         server = get_server(server)
 
+    # Set client type
+    server.client_type = "vue2"
+
     # parse args
     parser = server.cli
     parser.add_argument("-I", "--input", help="Input file (.i)")

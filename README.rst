@@ -4,6 +4,15 @@ peacock-trame
 
 MOOSE GUI developed using Trame from Kitware Inc.
 
+- `Blog post <https://www.kitware.com/the-evolution-of-peacock-a-powerful-interface-for-moose-simulations/>`_
+- `Video <https://vimeo.com/838073269>`_
+
+|image_1|
+
+.. |image_1| image:: https://www.kitware.com/main/wp-content/uploads/2023/06/image1-1-1024x601.png
+  :width: 50%
+
+
 License
 -----------------------------------------------------------
 

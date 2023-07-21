@@ -1,5 +1,4 @@
-from .app import main
+import os
 
-__all__ = [
-    "main",
-]
+# Disable warning
+os.environ["TRAME_DISABLE_V3_WARNING"] = "1"
