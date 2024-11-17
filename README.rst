@@ -50,8 +50,8 @@ Create venv with mamba locally
 
 .. code-block:: console
 
-    mamba install python=3.9
-    mamba create -n moose python=3.9 moose paraview -y
+    mamba install python=3.10
+    mamba create -n moose python=3.10 moose paraview -y
     mamba activate moose
     pip install peacock-trame
 
