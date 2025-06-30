@@ -4,9 +4,7 @@ import sys
 from pathlib import Path
 
 import vtkmodules.vtkRenderingOpenGL2  # noqa
-
 from pyaml import yaml
-
 from trame.widgets import html, paraview, simput, vtk, vuetify
 from trame_simput.core.mapping import ObjectFactory, ProxyObjectAdapter
 from vtkmodules.vtkFiltersExtraction import vtkExtractBlock
@@ -16,11 +14,11 @@ from vtkmodules.vtkIOExodus import vtkExodusIIReader
 from vtkmodules.vtkRenderingCore import (
     vtkActor,
     vtkCompositeDataDisplayAttributes,
+    vtkCompositePolyDataMapper,
     vtkRenderer,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
 )
-from vtkmodules.vtkRenderingOpenGL2 import vtkCompositePolyDataMapper2
 
 from peacock_trame.widgets import peacock
 
@@ -1120,7 +1118,7 @@ class InputFileEditor:
                 extractor.AddIndex(idx)
             geometry = vtkDataSetSurfaceFilter()
             geometry.SetInputConnection(extractor.GetOutputPort())
-            mapper = vtkCompositePolyDataMapper2()
+            mapper = vtkCompositePolyDataMapper()
             mapper.SetInputConnection(geometry.GetOutputPort())
             cdsa = vtkCompositeDataDisplayAttributes()
             mapper.SetCompositeDataDisplayAttributes(cdsa)
