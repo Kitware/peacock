@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.2 (2025-07-01)
+
+### Fix
+
+* **vtk:** Replace vtkCompositePolyDataMapper2 with vtkCompositePolyDataMapper ([`da3e772`](https://github.com/Kitware/peacock/commit/da3e772ced1d478eba0d3c42ab64dbabdb72efd4))
+
+### Documentation
+
+* Update README.rst ([`bcf465b`](https://github.com/Kitware/peacock/commit/bcf465b44d129cfc72d90e954b5647388a24ee55))
+
 ## v0.1.1 (2023-07-21)
 
 ### Fix
