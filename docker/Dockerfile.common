@@ -1,17 +1,17 @@
-FROM idaholab/moose:latest
+FROM idaholab/moose:2025.05.30-1a66aba
 
 WORKDIR /opt
 
 SHELL ["/bin/bash", "-ce"]
 
 # install paraview
-RUN wget --quiet -O ParaView-6.0.0-RC1-MPI-Linux-Python3.12-x86_64.tar.gz "https://www.paraview.org/paraview-downloads/download.php?submit=Download&version=v6.0&type=binary&os=Linux&downloadFile=ParaView-6.0.0-RC1-MPI-Linux-Python3.12-x86_64.tar.gz" && \
-    tar xf "ParaView-6.0.0-RC1-MPI-Linux-Python3.12-x86_64.tar.gz" && \
-    mv ParaView-6.0.0-RC1-MPI-Linux-Python3.12-x86_64/ paraview/ && \
-    rm ParaView-6.0.0-RC1-MPI-Linux-Python3.12-x86_64.tar.gz
+RUN wget --quiet -O ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz "https://www.paraview.org/paraview-downloads/download.php?submit=Download&version=v6.0&type=binary&os=Linux&downloadFile=ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz" && \
+    tar xf "ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz" && \
+    mv ParaView-6.0.0-MPI-Linux-Python3.12-x86_64/ paraview/ && \
+    rm ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz
 
 # install required runtime dependencies for paraview & utility packages
-RUN dnf install -qy libglvnd-opengl libglvnd-glx tree mesa-libEGL mesa-libOSMesa
+RUN dnf install -qy libglvnd-opengl libglvnd-glx tree mesa-libEGL mesa-libOSMesa mesa-dri-drivers
 
 ENV PVPYTHONPATH=/opt/paraview/bin/pvpython
 
@@ -25,8 +25,6 @@ ENV NVM_DIR=/root/.nvm
 # install moose language server
 RUN git clone https://github.com/idaholab/moose-language-support.git
 RUN cd moose-language-support && source ~/.bashrc && nvm use 16 && npm i && npm run esbuild
-
-COPY scripts/ /work/
 
 # setup python path for MOOSE and paraview
 ENV PYTHONPATH=/opt/moose/share/moose/python:/opt/paraview/lib/python3.12/site-packages

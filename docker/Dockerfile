@@ -2,10 +2,10 @@ FROM peacock_common:latest
 
 WORKDIR /work
 
-RUN git clone https://github.com/idaholab/moose.git
-RUN git clone https://github.com/Kitware/peacock.git
+RUN git clone https://github.com/idaholab/moose.git --branch 2025-05-09-release --depth 1
+RUN git clone https://github.com/bourdaisj/peacock.git && cd peacock && git checkout improve-exodus-viewer-time-and-block-handling
 
-
+COPY scripts/ /work/
 
 RUN source /environment && ./build_examples.bash
 SHELL ["bash" , "-c"]
@@ -20,10 +20,7 @@ ENV NODE_VERSION=16
 ENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
 
 # Verify node installation
-RUN node -v && npm -v && echo yesss
-RUN ./setup_venv.bash
-RUN ./build_peacock.bash && \
-    /work/venv/bin/python -m pip install /work/peacock
+RUN node -v && npm -v
 
 # setup python path for MOOSE and paraview
 ENV PYTHONPATH=/opt/moose/share/moose/python:/opt/paraview/lib/python3.12/site-packages
