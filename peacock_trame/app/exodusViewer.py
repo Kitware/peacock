@@ -176,6 +176,7 @@ class ExodusViewer:
                     self.update_render_window(), interactive_ratio=1, ref="exodus_view"
                 )
                 self.ctrl.update_exodus_view = renderView.update
+                self.ctrl.reset_exodus_view_camera = renderView.reset_camera
 
                 # ex2 timestep controller
                 with html.Div(
@@ -581,10 +582,11 @@ class ExodusViewer:
             rep.SetScalarBarVisibility(view, True)
 
             view.ResetCamera()
+            self.ctrl.reset_exodus_view_camera()
 
             block_selectors = []
 
-            def create_mesh_info(set_list, visible):
+            def create_mesh_info(set_list, visible, sub_block_name):
                 # store info in dictionary
                 info = {}
                 for set_id in set_list:
@@ -595,19 +597,18 @@ class ExodusViewer:
                     }
 
                     if visible:
-                        block_selectors.append("/Root/" + set_id)
+                        block_selectors.append(f"/IOSS/{sub_block_name}/{set_id}")
 
                 return info
 
             ex2.ElementBlocks.SelectAll()
             ex2.SideSets.SelectAll()
             ex2.NodeSets.SelectAll()
-            state.ex2_blocks = create_mesh_info(ex2.ElementBlocks, True)
-            state.ex2_boundaries = create_mesh_info(ex2.SideSets, False)
-            state.ex2_nodesets = create_mesh_info(ex2.NodeSets, False)
-
-            rep.BlockSelectors = block_selectors
-
+            state.ex2_blocks = create_mesh_info(
+                ex2.ElementBlocks, True, "element_blocks"
+            )
+            state.ex2_boundaries = create_mesh_info(ex2.SideSets, True, "side_sets")
+            state.ex2_nodesets = create_mesh_info(ex2.NodeSets, True, "node_sets")
             # compute data ranges
             data = ex2.GetPointDataInformation()
             data_ranges = {}
