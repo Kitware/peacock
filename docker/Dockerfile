@@ -25,5 +25,12 @@ RUN node -v && npm -v
 # setup python path for MOOSE and paraview
 ENV PYTHONPATH=/opt/moose/share/moose/python:/opt/paraview/lib/python3.12/site-packages
 
+RUN ["chmod", "+x", "/work/build_examples.bash"]
+RUN ["chmod", "+x", "/work/build_peacock.bash"]
+RUN ["chmod", "+x", "/work/entrypoint.bash"]
+RUN ["chmod", "+x", "/work/run_example.bash"]
+RUN ["chmod", "+x", "/work/setup_venv.bash"]
+RUN ["chmod", "+x", "/work/setup.bash"]
+
 ENTRYPOINT ["/work/entrypoint.bash"] 
 CMD ["-I", "./moose/examples/ex08_materials/ex08.i"]
