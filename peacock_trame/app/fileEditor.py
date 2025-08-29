@@ -39,6 +39,7 @@ from .core.input.InputTree import InputTree  # noqa
 try:
     from paraview import simple
 
+    # print("Using PV OpenGL Renderer: ", simple.GetOpenGLInformation().GetRenderer())
     USE_PARAVIEW = True
 except ModuleNotFoundError:
     USE_PARAVIEW = False

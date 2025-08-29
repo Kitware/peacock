@@ -1,0 +1,30 @@
+FROM node:20-bookworm AS js_assets_builder
+
+WORKDIR /work
+
+RUN git clone https://github.com/idaholab/moose-language-support.git && \
+    cd moose-language-support && npm install --no-audit && \
+    npm run esbuild
+
+ENV NODE_OPTIONS=--openssl-legacy-provider
+
+RUN git clone https://github.com/Kitware/peacock.git && \
+    cd peacock/vue-components && npm i --no-audit && npm run build && \
+    cd /work/peacock/lang-server && npm i --no-audit && npm run build
+
+FROM moosepv:latest
+
+WORKDIR /work
+
+COPY --from=js_assets_builder /work/moose-language-support/out /work/moose-language-support/out
+COPY --from=js_assets_builder /work/peacock /work/peacock
+
+COPY ./run_peacock.bash /work/run_peacock.bash
+
+RUN /opt/miniforge3/bin/python3.12 -m venv venv && ./venv/bin/python -m pip install --upgrade pip && \
+ ./venv/bin/python -m pip install vtk && ./venv/bin/python -m pip install /work/peacock
+
+ENV PYTHON_EXECUTABLE=/work/venv/bin/python
+
+ENTRYPOINT ["/work/run_peacock.bash"] 
+CMD ["-I", "/work/moose/examples/ex08_materials/ex08.i"]
