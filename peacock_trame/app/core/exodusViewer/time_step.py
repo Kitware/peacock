@@ -34,11 +34,12 @@ class TimeStepController:
 
     def set_ex2(self, ex2):
         animation_scene = simple.GetAnimationScene()
+        animation_scene.UpdateAnimationUsingDataTimeSteps()
         animation_scene.GoToFirst()
         self._curr_frame = 1
-        self._num_frames = animation_scene.NumberOfFrames
+        self._num_frames = len(animation_scene.TimeKeeper.TimestepValues)
         self._set_state_var("curr_frame", 1)
-        self._set_state_var("num_frames", animation_scene.NumberOfFrames)
+        self._set_state_var("num_frames", self._num_frames)
         self._animation_scene = animation_scene
 
     def set_render_function(self, func):
