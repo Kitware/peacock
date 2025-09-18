@@ -110,3 +110,8 @@ Run the application assuming the same layout as previously described
     cd ./moose/examples/ex08_materials
     make
     peacock-trame -I ./ex08.i
+
+Docker image
+-----------------------------------------------------------
+
+Alternatively you can use the docker image. Just head to the `docker folder/ <docker/>`_

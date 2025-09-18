@@ -1,0 +1,29 @@
+FROM idaholab/moose:2025.05.30-1a66aba
+
+WORKDIR /opt
+
+SHELL ["/bin/bash", "-ce"]
+
+# install paraview
+RUN wget --quiet -O ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz "https://www.paraview.org/files/v6.0/ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz" && \
+    tar xf "ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz" && \
+    mv ParaView-6.0.0-MPI-Linux-Python3.12-x86_64/ paraview/ && \
+    rm ParaView-6.0.0-MPI-Linux-Python3.12-x86_64.tar.gz
+
+ENV PVPYTHONPATH=/opt/paraview/bin/pvpython
+
+ENV NVIDIA_DRIVER_CAPABILITIES=all
+ENV NVIDIA_VISIBLE_DEVICES=all
+
+ENV MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA
+
+# install packages for both NVIDIA EGL and mesa llvmpipe runtimes
+RUN dnf install -qy libglvnd-opengl libglvnd-egl mesa-libGL mesa-dri-drivers
+
+COPY ./add_moose_examples.bash /work/add_moose_examples.bash
+RUN /work/add_moose_examples.bash
+
+# build the porous_flow module
+RUN cd /work/moose/modules/porous_flow && source /environment && make -j $(( $(nproc) - 2))
+
+ENTRYPOINT ["/opt/paraview/bin/pvpython"]
