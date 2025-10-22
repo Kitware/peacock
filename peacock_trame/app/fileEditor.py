@@ -177,6 +177,7 @@ class InputFileEditor:
         print(f"Writing to {path}...")
         with open(path, "w") as f:
             f.write(self.tree.getInputFileString())
+            self._server.state.info_snackbar = True
 
     def add_to_simput_model(self, type_info):
         simput_type = type_info.path

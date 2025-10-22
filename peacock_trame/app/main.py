@@ -70,6 +70,16 @@ class Peacock:
                 if tab_idx == 2:
                     self.exodus_viewer.check_file()
 
+            vuetify.VSnackbar(
+                "Configuration successfully saved to {{ input_file }}",
+                v_model=(
+                    "info_snackbar",
+                    False,
+                ),
+                color="success",
+                left=True,
+            )
+
             with html.Div(
                 style="position: relative; display: flex; border-bottom: 1px solid gray",
             ):
@@ -95,12 +105,17 @@ class Peacock:
                         v_if=("tab_idx == 0",),
                         style="height: 100%; width: 100%; display: flex; align-items: center; justify-content: flex-end;",
                     ):
-                        with vuetify.VBtn(
-                            click=self.file_editor.write_file,
-                            icon=True,
-                            style="z-index: 1;",
-                        ):
-                            vuetify.VIcon("mdi-content-save-outline")
+                        with vuetify.VTooltip(
+                            "Saved current configuration to file", position="left"
+                        ), vuetify.Template(v_slot_activator=("{ on, attrs }",)):
+                            with vuetify.VBtn(
+                                click=self.file_editor.write_file,
+                                icon=True,
+                                style="z-index: 1;",
+                                v_on="on",
+                                v_bind="attrs",
+                            ):
+                                vuetify.VIcon("mdi-content-save-outline")
 
                     with html.Div(
                         style="height: 100%; width: 300px; display: flex; align-items: center; justify-content: space-between;",
