@@ -5,6 +5,7 @@ from trame.widgets import html, paraview, vuetify
 
 from .core.common.utils import throttled_run
 from .core.exodusViewer.time_step import TimeStepController
+import ptc.vue2 as ptc_vue2
 
 try:
     from paraview import simple
@@ -177,12 +178,22 @@ class ExodusViewer:
                 )
                 self.ctrl.update_exodus_view = renderView.update
                 self.ctrl.reset_exodus_view_camera = renderView.reset_camera
+                self.ctrl.view_reset_camera = renderView.reset_camera
+                self.ctrl.on_data_change.add(self.ctrl.update_exodus_view)
+                self.ctrl.view_update = self.ctrl.update_exodus_view
 
                 # ex2 timestep controller
                 with html.Div(
                     style="position: absolute; top: 0px; left: 0px; display: flex; z-index: 1;",
                 ):
                     self.time_ctrl.get_ui()
+
+                with html.Div(
+                    style="position: absolute; top: 0px; right: 20px; display: flex; align-items: center;"
+                ):
+                    with html.Div(style="top: 0.5rem; position: relative;"):
+                        ptc_vue2.PalettePicker()
+                    ptc_vue2.ResetCameraButtons(rounded="s")
 
                 # block, boundary, nodeset selector
                 with html.Div(
