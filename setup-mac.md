@@ -79,12 +79,12 @@ mkdir peacock-work
 cd peacock-work
 git clone --recursive git@github.com:Kitware/peacock.git
 git clone --recursive https://github.com/idaholab/moose.git
-curl -LO https://www.paraview.org/files/v5.11/ParaView-5.11.0-MPI-OSX11.0-Python3.9-arm64.dmg
+curl -LO https://www.paraview.org/files/v6.0/ParaView-6.0.1-MPI-OSX11.0-Python3.12-arm64.dmg
 # Mount and copy ParaView-5.11.0.app/ in the current directory
 
 
-mamba install python=3.9
-mamba create -p ./venv python=3.9 moose-tools moose-libmesh
+mamba install python=3.12
+mamba create -p ./venv python=3.12 moose-tools moose-libmesh
 mamba activate ./venv
 pip install ./peacock
 
