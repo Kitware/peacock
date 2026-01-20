@@ -168,7 +168,15 @@ class ParameterInfo(object):
             parse_func = basic_type_parse_map[basic_type]
 
             if type(value) is str:
-                return [parse_func(val) for val in value.split()]
+                default_value = []
+                for val in value.split():
+                    try:
+                        default_value.append(parse_func(val.strip(' ,')))
+                    except ValueError:
+                        continue
+
+                return default_value
+                # return [parse_func(val.strip(' ,')) for val in value.split()]
             elif type(value) is list:
                 return [parse_func(val) for val in value]
             else:
